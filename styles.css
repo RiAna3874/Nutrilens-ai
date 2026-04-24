@@ -82,8 +82,7 @@ select {
 }
 
 select {
-  width: 260px;
-  max-width: 100%;
+  width: 100%;
   padding: 14px;
   background: #ffffff;
   color: #111111;
@@ -108,8 +107,7 @@ textarea {
 }
 
 input[type="number"] {
-  width: 260px;
-  max-width: 100%;
+  width: 100%;
   padding: 14px;
   color: #111111;
   background: #ffffff;
@@ -161,6 +159,11 @@ select:focus {
   gap: 16px;
 }
 
+.row input[type="number"] {
+  width: 260px;
+  max-width: 100%;
+}
+
 .field-group {
   margin-bottom: 22px;
 }
@@ -178,6 +181,24 @@ select:focus {
 .metric {
   padding: 10px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.requirement-result {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.requirement-result p {
+  margin: 10px 0;
+  font-size: 1.1rem;
 }
 
 .totals-grid {
@@ -258,7 +279,7 @@ select:focus {
 }
 
 .hidden {
-  display: none;
+  display: none !important;
 }
 
 .sr-only,
@@ -275,6 +296,7 @@ select:focus {
 }
 
 @media (max-width: 800px) {
+  .calculator-grid,
   .totals-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -289,7 +311,7 @@ select:focus {
     padding: 20px;
   }
 
-  input[type="number"],
+  .row input[type="number"],
   button,
   select {
     width: 100%;
@@ -297,6 +319,7 @@ select:focus {
 }
 
 @media (max-width: 480px) {
+  .calculator-grid,
   .totals-grid {
     grid-template-columns: 1fr;
   }

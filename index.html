@@ -16,7 +16,7 @@
     <header>
       <h1>NutriLens AI</h1>
       <p class="subtitle">
-        Analyze foods, assign them to meals, track your daily calories, and estimate your daily calorie requirement.
+        Analyze foods, assign them to meals, track daily calories, and estimate your daily calorie requirement.
       </p>
     </header>
 
@@ -130,8 +130,16 @@
       <section class="card" aria-labelledby="requirementTitle">
         <h2 id="requirementTitle">Daily calorie requirement calculator</h2>
         <p class="help-text">
-          Uses the Mifflin–St Jeor equation for BMR, then estimates TDEE using activity level.
+          Uses Mifflin–St Jeor BMR, then estimates total daily energy expenditure using activity level.
         </p>
+
+        <div class="field-group">
+          <label for="unitSystemInput">Unit system</label>
+          <select id="unitSystemInput">
+            <option value="metric">Metric: kg and cm</option>
+            <option value="imperial">Imperial: lb, feet, inches</option>
+          </select>
+        </div>
 
         <div class="calculator-grid">
           <div class="field-group">
@@ -147,14 +155,29 @@
             <input id="ageInput" type="number" min="10" max="120" value="35" />
           </div>
 
-          <div class="field-group">
-            <label for="heightInput">Height in cm</label>
-            <input id="heightInput" type="number" min="100" max="250" value="170" />
+          <div class="field-group metric-input">
+            <label for="heightCmInput">Height in cm</label>
+            <input id="heightCmInput" type="number" min="100" max="250" value="170" />
           </div>
 
-          <div class="field-group">
-            <label for="weightInput">Weight in kg</label>
-            <input id="weightInput" type="number" min="25" max="300" value="80" />
+          <div class="field-group metric-input">
+            <label for="weightKgInput">Weight in kg</label>
+            <input id="weightKgInput" type="number" min="25" max="300" value="80" />
+          </div>
+
+          <div class="field-group imperial-input hidden">
+            <label for="heightFeetInput">Height: feet</label>
+            <input id="heightFeetInput" type="number" min="1" max="8" value="5" />
+          </div>
+
+          <div class="field-group imperial-input hidden">
+            <label for="heightInchesInput">Height: inches</label>
+            <input id="heightInchesInput" type="number" min="0" max="11" value="7" />
+          </div>
+
+          <div class="field-group imperial-input hidden">
+            <label for="weightLbInput">Weight in lb</label>
+            <input id="weightLbInput" type="number" min="50" max="700" value="176" />
           </div>
 
           <div class="field-group">
