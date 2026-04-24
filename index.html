@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <title>NutriLens AI - Meal Nutrition Analyzer</title>
+  <title>NutriLens AI - Daily Meal Tracker</title>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -16,13 +16,23 @@
     <header>
       <h1>NutriLens AI</h1>
       <p class="subtitle">
-        Upload a food photo or type a food description to estimate calories, protein, carbohydrates, and fat.
+        Analyze foods, assign them to meals, and track your daily calories and macros.
       </p>
     </header>
 
     <main id="mainContent">
       <section class="card" aria-labelledby="analyzerTitle">
         <h2 id="analyzerTitle">Meal analyzer</h2>
+
+        <div class="field-group">
+          <label for="mealTypeInput">Meal type</label>
+          <select id="mealTypeInput">
+            <option value="Breakfast">Breakfast</option>
+            <option value="Lunch">Lunch</option>
+            <option value="Dinner">Dinner</option>
+            <option value="Snack">Snack</option>
+          </select>
+        </div>
 
         <div class="field-group">
           <label for="imageInput">Upload food image</label>
@@ -40,19 +50,19 @@
         <div class="field-group">
           <label for="descriptionInput">Food description</label>
           <p id="descriptionHelp" class="help-text">
-            Example: rice, chicken curry, egg, dal, vegetables.
+            Example: rice 150g chicken 120g egg 2
           </p>
           <textarea
             id="descriptionInput"
-            placeholder="Example: rice, chicken curry, vegetables"
+            placeholder="Example: rice 150g chicken 120g egg 2"
             aria-describedby="descriptionHelp"
           ></textarea>
         </div>
 
         <div class="field-group">
-          <label for="portionInput">Portion size in grams</label>
+          <label for="portionInput">Default portion size in grams</label>
           <p id="portionHelp" class="help-text">
-            Enter an estimated serving size. Default is 100 grams.
+            Used only when a specific amount is not typed. Default is 100 grams.
           </p>
 
           <div class="row">
@@ -111,6 +121,41 @@
         <p id="explanation">
           <strong>Explanation:</strong> Waiting for meal analysis.
         </p>
+
+        <button id="addToDayButton" type="button" disabled>
+          Add to daily tracker
+        </button>
+      </section>
+
+      <section class="card" aria-labelledby="dailyTitle">
+        <h2 id="dailyTitle">Daily calorie tracker</h2>
+
+        <div class="totals-grid">
+          <div>
+            <strong>Total calories</strong>
+            <p id="dailyCalories">0 kcal</p>
+          </div>
+          <div>
+            <strong>Total protein</strong>
+            <p id="dailyProtein">0 g</p>
+          </div>
+          <div>
+            <strong>Total carbs</strong>
+            <p id="dailyCarbs">0 g</p>
+          </div>
+          <div>
+            <strong>Total fat</strong>
+            <p id="dailyFat">0 g</p>
+          </div>
+        </div>
+
+        <div id="mealLog" class="meal-log">
+          <p>No meals added yet.</p>
+        </div>
+
+        <button id="clearDayButton" type="button" class="danger-button">
+          Clear daily tracker
+        </button>
       </section>
 
       <footer class="disclaimer" aria-label="Medical and nutrition disclaimer">
