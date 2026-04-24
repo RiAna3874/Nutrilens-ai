@@ -5,6 +5,7 @@ import cors from "cors";
 import { GoogleGenAI } from "@google/genai";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 dotenv.config();
 
@@ -14,8 +15,10 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const publicPath = path.join(__dirname, "public");
+
 app.use(cors());
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(publicPath));
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY
@@ -109,14 +112,6 @@ const nutritionDatabase = [
     fat: 0.1
   },
   {
-    keywords: ["avocado"],
-    food: "Avocado",
-    calories: 160,
-    protein: 2,
-    carbs: 8.5,
-    fat: 14.7
-  },
-  {
     keywords: ["banana"],
     food: "Banana",
     calories: 89,
@@ -149,14 +144,6 @@ const nutritionDatabase = [
     fat: 7.5
   },
   {
-    keywords: ["beef"],
-    food: "Cooked beef",
-    calories: 250,
-    protein: 26,
-    carbs: 0,
-    fat: 15
-  },
-  {
     keywords: ["fish"],
     food: "Cooked fish",
     calories: 140,
@@ -165,7 +152,7 @@ const nutritionDatabase = [
     fat: 5
   },
   {
-    keywords: ["vegetable", "vegetables", "mixed vegetables"],
+    keywords: ["vegetable", "vegetables"],
     food: "Mixed vegetables",
     calories: 65,
     protein: 2.5,
@@ -174,6 +161,16 @@ const nutritionDatabase = [
   }
 ];
 
+app.get("/", (req, res) => {
+  const indexPath = path.join(publicPath, "index.html");
+
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+
+  return res.status(500).send("index.html not found inside public folder.");
+});
+
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -181,103 +178,58 @@ app.get("/health", (req, res) => {
   });
 });
 
-app.post(
-  "/analyze",
-  (req, res, next) => {
-    upload.single("image")(req, res, function (error) {
-      if (error) {
-        return res.status(400).json({
-          error: error.message || "Image upload failed."
-        });
-      }
+app.post("/analyze", upload.single("image"), async (req, res) => {
+  try {
+    const description = req.body.description || "";
+    const portion = req.body.portion || "100";
+    const imageFile = req.file;
 
-      next();
-    });
-  },
-  async (req, res) => {
-    try {
-      const description = req.body.description || "";
-      const portion = req.body.portion || "100";
-      const imageFile = req.file;
-
-      if (!imageFile && !description.trim()) {
-        return res.status(400).json({
-          error: "Please upload a food image or describe the food."
-        });
-      }
-
-      const localResult = analyzeWithLocalDatabase(description, portion);
-
-      if (localResult.found) {
-        return res.json(localResult.result);
-      }
-
-      if (!process.env.GEMINI_API_KEY) {
-        return res.json({
-          food: description || "Unknown food",
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-          explanation:
-            "AI is inactive and this food was not found in the local database. Try typing a clearer food name like rice, egg, chicken, salmon, dal, potato, banana, apple, bread, roti, beef, fish, or vegetables."
-        });
-      }
-
-      try {
-        const geminiResult = await analyzeWithGemini(description, portion, imageFile);
-        return res.json(geminiResult);
-      } catch (geminiError) {
-        console.error("Gemini failed:", geminiError);
-
-        return res.json({
-          food: description || "Unknown food",
-          calories: 0,
-          protein: 0,
-          carbs: 0,
-          fat: 0,
-          explanation:
-            "AI was unavailable or quota-limited, and this food was not found in the local database. Try a simpler description such as rice, chicken, egg, salmon, dal, potato, banana, apple, bread, roti, beef, fish, or vegetables."
-        });
-      }
-    } catch (error) {
-      console.error("Analyze error:", error);
-
-      return res.status(500).json({
-        error: "Something went wrong while analyzing the meal."
+    if (!imageFile && !description.trim()) {
+      return res.status(400).json({
+        error: "Please upload a food image or describe the food."
       });
     }
+
+    const localResult = analyzeWithLocalDatabase(description, portion);
+
+    if (localResult.found) {
+      return res.json(localResult.result);
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({
+        food: description || "Unknown food",
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        explanation:
+          "AI is inactive and this food was not found in the local database."
+      });
+    }
+
+    try {
+      const geminiResult = await analyzeWithGemini(description, portion, imageFile);
+      return res.json(geminiResult);
+    } catch (error) {
+      return res.json({
+        food: description || "Unknown food",
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        explanation:
+          "AI was unavailable or quota-limited, and this food was not found in the local database."
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      error: "Something went wrong while analyzing the meal."
+    });
   }
-);
+});
 
 async function analyzeWithGemini(description, portion, imageFile) {
-  const prompt = `
-You are NutriLens AI, a nutrition estimation assistant.
-
-Analyze the meal from the uploaded image and/or user description.
-
-User description:
-${description || "No description provided."}
-
-Portion size:
-${portion} grams
-
-Return ONLY valid JSON.
-No markdown.
-No code fence.
-No extra text.
-
-Use this exact JSON structure:
-{
-  "food": "string",
-  "calories": number,
-  "protein": number,
-  "carbs": number,
-  "fat": number,
-  "explanation": "string"
-}
-`;
-
   const parts = [];
 
   if (imageFile) {
@@ -290,7 +242,22 @@ Use this exact JSON structure:
   }
 
   parts.push({
-    text: prompt
+    text: `
+Analyze this meal.
+
+Description: ${description || "No description"}
+Portion: ${portion} grams
+
+Return only JSON:
+{
+  "food": "string",
+  "calories": number,
+  "protein": number,
+  "carbs": number,
+  "fat": number,
+  "explanation": "string"
+}
+`
   });
 
   const response = await ai.models.generateContent({
@@ -307,18 +274,7 @@ Use this exact JSON structure:
     }
   });
 
-  const rawText = response.text;
-
-  if (!rawText || typeof rawText !== "string") {
-    throw new Error("Gemini returned empty response.");
-  }
-
-  const cleanedText = rawText
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-  const parsed = JSON.parse(cleanedText);
+  const parsed = JSON.parse(response.text.trim());
 
   return {
     food: String(parsed.food || "Unknown food"),
@@ -326,10 +282,7 @@ Use this exact JSON structure:
     protein: cleanNumber(parsed.protein),
     carbs: cleanNumber(parsed.carbs),
     fat: cleanNumber(parsed.fat),
-    explanation: String(
-      parsed.explanation ||
-        "Nutrition estimated from available image and description."
-    )
+    explanation: String(parsed.explanation || "Estimated using AI.")
   };
 }
 
@@ -376,16 +329,10 @@ function analyzeWithLocalDatabase(description, portion) {
       carbs: cleanNumber(total.carbs),
       fat: cleanNumber(total.fat),
       explanation:
-        "Estimated using the built-in local nutrition database. AI was not needed for this result."
+        "Estimated using the built-in local nutrition database. AI was not needed."
     }
   };
 }
-
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found."
-  });
-});
 
 function cleanNumber(value) {
   const number = Number(value);
@@ -397,6 +344,12 @@ function cleanNumber(value) {
   return Math.round(number * 10) / 10;
 }
 
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found."
+  });
+});
+
 app.listen(PORT, () => {
-  console.log(`NutriLens AI backend running at http://localhost:${PORT}`);
+  console.log(`NutriLens AI running on port ${PORT}`);
 });
