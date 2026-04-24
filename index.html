@@ -6,7 +6,295 @@
 
   <title>NutriLens AI - Daily Meal Tracker</title>
 
-  <link rel="stylesheet" href="styles.css" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #062f24;
+      color: #ffffff;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: 12px;
+      background: #ffffff;
+      color: #062f24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .skip-link:focus {
+      left: 12px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      margin: 0 0 12px;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      max-width: 760px;
+      color: #e6fff7;
+    }
+
+    .card {
+      background: #124638;
+      padding: 28px;
+      border-radius: 18px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    label {
+      display: block;
+      font-size: 1.15rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .help-text {
+      font-size: 0.95rem;
+      color: #d8fff5;
+      margin: -2px 0 12px;
+    }
+
+    input,
+    textarea,
+    button,
+    select {
+      font-size: 1.1rem;
+      border-radius: 10px;
+    }
+
+    select,
+    input[type="number"],
+    textarea {
+      width: 100%;
+      padding: 14px;
+      background: #ffffff;
+      color: #111111;
+      border: 3px solid transparent;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin-bottom: 24px;
+      color: white;
+    }
+
+    textarea {
+      min-height: 160px;
+      resize: vertical;
+    }
+
+    button {
+      padding: 14px 24px;
+      background: #18a98b;
+      color: white;
+      border: 3px solid #b7d0ff;
+      cursor: pointer;
+      font-weight: bold;
+      min-height: 52px;
+    }
+
+    button:hover {
+      background: #117d68;
+    }
+
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+
+    .danger-button {
+      margin-top: 20px;
+      background: #8b1e1e;
+      border-color: #ffb3b3;
+    }
+
+    input:focus,
+    textarea:focus,
+    button:focus,
+    select:focus {
+      outline: 4px solid #ffd43b;
+      outline-offset: 3px;
+      border-color: #ffd43b;
+    }
+
+    .row {
+      display: flex;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .row input[type="number"] {
+      width: 260px;
+      max-width: 100%;
+    }
+
+    .field-group {
+      margin-bottom: 22px;
+    }
+
+    .result h2 {
+      font-size: 2rem;
+      margin-top: 0;
+    }
+
+    .result p {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+
+    .metric {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .totals-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .requirement-result,
+    .totals-grid div,
+    .meal-item {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 16px;
+      border-radius: 12px;
+    }
+
+    .meal-section {
+      margin-top: 20px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .error {
+      color: #ffffff;
+      background: #8b1e1e;
+      border: 2px solid #ffb3b3;
+      font-weight: bold;
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+    }
+
+    .loading {
+      color: #1f1f1f;
+      background: #ffe08a;
+      font-weight: bold;
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+    }
+
+    .disclaimer {
+      margin-top: 20px;
+      margin-bottom: 30px;
+      padding: 16px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.1);
+      border-left: 5px solid #ffcc00;
+      border-radius: 10px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .sr-only,
+    #screenReaderSummary {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .unit-row {
+      margin-bottom: 10px;
+    }
+
+    .unit-row select {
+      max-width: 180px;
+    }
+
+    .two-input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    @media (max-width: 800px) {
+      .calculator-grid,
+      .totals-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 16px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      .row input[type="number"],
+      button,
+      select {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .calculator-grid,
+      .totals-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -21,8 +309,8 @@
     </header>
 
     <main id="mainContent">
-      <section class="card" aria-labelledby="analyzerTitle">
-        <h2 id="analyzerTitle">Meal analyzer</h2>
+      <section class="card">
+        <h2>Meal analyzer</h2>
 
         <div class="field-group">
           <label for="mealTypeInput">Meal type</label>
@@ -36,99 +324,45 @@
 
         <div class="field-group">
           <label for="imageInput">Upload food image</label>
-          <p id="imageHelp" class="help-text">
-            Optional. You can also type a food description instead.
-          </p>
-          <input
-            id="imageInput"
-            type="file"
-            accept="image/*"
-            aria-describedby="imageHelp"
-          />
+          <p class="help-text">Optional. You can also type a food description instead.</p>
+          <input id="imageInput" type="file" accept="image/*" />
         </div>
 
         <div class="field-group">
           <label for="descriptionInput">Food description</label>
-          <p id="descriptionHelp" class="help-text">
-            Example: rice 150g chicken 120g egg 2
-          </p>
-          <textarea
-            id="descriptionInput"
-            placeholder="Example: rice 150g chicken 120g egg 2"
-            aria-describedby="descriptionHelp"
-          ></textarea>
+          <p class="help-text">Example: rice 150g chicken 120g egg 2</p>
+          <textarea id="descriptionInput" placeholder="Example: rice 150g chicken 120g egg 2"></textarea>
         </div>
 
         <div class="field-group">
           <label for="portionInput">Default portion size in grams</label>
-          <p id="portionHelp" class="help-text">
-            Used only when a specific amount is not typed. Default is 100 grams.
-          </p>
+          <p class="help-text">Used only when a specific amount is not typed. Default is 100 grams.</p>
 
           <div class="row">
-            <input
-              id="portionInput"
-              type="number"
-              value="100"
-              min="1"
-              aria-describedby="portionHelp"
-            />
-
-            <button id="analyzeButton" type="button">
-              Analyze meal
-            </button>
+            <input id="portionInput" type="number" value="100" min="1" />
+            <button id="analyzeButton" type="button">Analyze meal</button>
           </div>
         </div>
 
-        <div
-          id="loadingMessage"
-          class="loading hidden"
-          role="status"
-          aria-live="polite"
-        ></div>
-
-        <div
-          id="errorMessage"
-          class="error hidden"
-          role="alert"
-          aria-live="assertive"
-        ></div>
+        <div id="loadingMessage" class="loading hidden"></div>
+        <div id="errorMessage" class="error hidden"></div>
       </section>
 
-      <section class="card result" aria-labelledby="resultTitle">
-        <h2 id="resultTitle">Nutrition result</h2>
+      <section class="card result">
+        <h2>Nutrition result</h2>
 
-        <p id="foodName" class="metric">
-          <strong>Food:</strong> Not analyzed yet
-        </p>
+        <p id="foodName" class="metric"><strong>Food:</strong> Not analyzed yet</p>
+        <p id="calories" class="metric"><strong>Calories:</strong> 0 kcal</p>
+        <p id="protein" class="metric"><strong>Protein:</strong> 0 g</p>
+        <p id="carbs" class="metric"><strong>Carbs:</strong> 0 g</p>
+        <p id="fat" class="metric"><strong>Fat:</strong> 0 g</p>
+        <p id="explanation"><strong>Explanation:</strong> Waiting for meal analysis.</p>
 
-        <p id="calories" class="metric">
-          <strong>Calories:</strong> 0 kcal
-        </p>
-
-        <p id="protein" class="metric">
-          <strong>Protein:</strong> 0 g
-        </p>
-
-        <p id="carbs" class="metric">
-          <strong>Carbs:</strong> 0 g
-        </p>
-
-        <p id="fat" class="metric">
-          <strong>Fat:</strong> 0 g
-        </p>
-
-        <p id="explanation">
-          <strong>Explanation:</strong> Waiting for meal analysis.
-        </p>
-
-        <button id="addToDayButton" type="button" disabled>
-          Add to daily tracker
-        </button>
+        <button id="addToDayButton" type="button" disabled>Add to daily tracker</button>
       </section>
 
-      <section class="card" aria-labelledby="requirementTitle">
-        <h2 id="requirementTitle">Daily calorie requirement calculator</h2>
+      <section class="card">
+        <h2>Daily calorie requirement calculator</h2>
         <p class="help-text">
           Uses Mifflin–St Jeor BMR, then estimates total daily energy expenditure using activity level.
         </p>
@@ -149,65 +383,32 @@
 
           <div class="field-group">
             <label for="heightUnitInput">Height</label>
-
             <div class="unit-row">
-              <select id="heightUnitInput" aria-label="Height unit">
+              <select id="heightUnitInput">
                 <option value="cm">cm</option>
                 <option value="ftin">ft / in</option>
               </select>
             </div>
 
             <div id="heightCmGroup">
-              <input
-                id="heightCmInput"
-                type="number"
-                min="100"
-                max="250"
-                value="170"
-                aria-label="Height in centimeters"
-              />
+              <input id="heightCmInput" type="number" min="100" max="250" value="170" />
             </div>
 
             <div id="heightFtInGroup" class="two-input-row hidden">
-              <input
-                id="heightFeetInput"
-                type="number"
-                min="1"
-                max="8"
-                value="5"
-                aria-label="Height feet"
-                placeholder="ft"
-              />
-              <input
-                id="heightInchesInput"
-                type="number"
-                min="0"
-                max="11"
-                value="7"
-                aria-label="Height inches"
-                placeholder="in"
-              />
+              <input id="heightFeetInput" type="number" min="1" max="8" value="5" placeholder="ft" />
+              <input id="heightInchesInput" type="number" min="0" max="11" value="7" placeholder="in" />
             </div>
           </div>
 
           <div class="field-group">
             <label for="weightUnitInput">Weight</label>
-
             <div class="unit-row">
-              <select id="weightUnitInput" aria-label="Weight unit">
+              <select id="weightUnitInput">
                 <option value="kg">kg</option>
                 <option value="lb">lb</option>
               </select>
             </div>
-
-            <input
-              id="weightInput"
-              type="number"
-              min="25"
-              max="700"
-              value="80"
-              aria-label="Weight"
-            />
+            <input id="weightInput" type="number" min="25" max="700" value="80" />
           </div>
 
           <div class="field-group">
@@ -232,9 +433,7 @@
           </div>
         </div>
 
-        <button id="calculateRequirementButton" type="button">
-          Calculate requirement
-        </button>
+        <button id="calculateRequirementButton" type="button">Calculate requirement</button>
 
         <div class="requirement-result">
           <p id="bmrResult"><strong>BMR:</strong> Not calculated yet</p>
@@ -247,38 +446,24 @@
         </div>
       </section>
 
-      <section class="card" aria-labelledby="dailyTitle">
-        <h2 id="dailyTitle">Daily calorie tracker</h2>
+      <section class="card">
+        <h2>Daily calorie tracker</h2>
 
         <div class="totals-grid">
-          <div>
-            <strong>Total calories</strong>
-            <p id="dailyCalories">0 kcal</p>
-          </div>
-          <div>
-            <strong>Total protein</strong>
-            <p id="dailyProtein">0 g</p>
-          </div>
-          <div>
-            <strong>Total carbs</strong>
-            <p id="dailyCarbs">0 g</p>
-          </div>
-          <div>
-            <strong>Total fat</strong>
-            <p id="dailyFat">0 g</p>
-          </div>
+          <div><strong>Total calories</strong><p id="dailyCalories">0 kcal</p></div>
+          <div><strong>Total protein</strong><p id="dailyProtein">0 g</p></div>
+          <div><strong>Total carbs</strong><p id="dailyCarbs">0 g</p></div>
+          <div><strong>Total fat</strong><p id="dailyFat">0 g</p></div>
         </div>
 
         <div id="mealLog" class="meal-log">
           <p>No meals added yet.</p>
         </div>
 
-        <button id="clearDayButton" type="button" class="danger-button">
-          Clear daily tracker
-        </button>
+        <button id="clearDayButton" type="button" class="danger-button">Clear daily tracker</button>
       </section>
 
-      <footer class="disclaimer" aria-label="Medical and nutrition disclaimer">
+      <footer class="disclaimer">
         <p>
           ⚠️ Nutrition and calorie requirement estimates are approximate and provided for general informational purposes only.
           This tool is not a substitute for professional medical advice, diagnosis, or treatment.
