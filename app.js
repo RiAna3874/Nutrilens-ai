@@ -26,11 +26,27 @@ const dailyCarbs = document.getElementById("dailyCarbs");
 const dailyFat = document.getElementById("dailyFat");
 const mealLog = document.getElementById("mealLog");
 
+const sexInput = document.getElementById("sexInput");
+const ageInput = document.getElementById("ageInput");
+const heightInput = document.getElementById("heightInput");
+const weightInput = document.getElementById("weightInput");
+const activityInput = document.getElementById("activityInput");
+const goalInput = document.getElementById("goalInput");
+const calculateRequirementButton = document.getElementById("calculateRequirementButton");
+
+const bmrResult = document.getElementById("bmrResult");
+const tdeeResult = document.getElementById("tdeeResult");
+const targetResult = document.getElementById("targetResult");
+const remainingResult = document.getElementById("remainingResult");
+const requirementExplanation = document.getElementById("requirementExplanation");
+
 let latestAnalysis = null;
+let latestCalorieTarget = null;
 
 analyzeButton.addEventListener("click", analyzeMeal);
 addToDayButton.addEventListener("click", addLatestMealToDay);
 clearDayButton.addEventListener("click", clearDailyTracker);
+calculateRequirementButton.addEventListener("click", calculateCalorieRequirement);
 
 descriptionInput.addEventListener("keydown", function (event) {
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -39,6 +55,8 @@ descriptionInput.addEventListener("keydown", function (event) {
 });
 
 loadDailyTracker();
+loadRequirementInputs();
+calculateCalorieRequirement(false);
 
 async function analyzeMeal() {
   hideError();
@@ -163,6 +181,7 @@ function addLatestMealToDay() {
 
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(meals));
   renderDailyTracker(meals);
+  updateRemainingCalories();
 
   screenReaderSummary.textContent =
     latestAnalysis.mealType + " added to daily tracker.";
@@ -171,6 +190,7 @@ function addLatestMealToDay() {
 function clearDailyTracker() {
   localStorage.removeItem("nutrilensDailyMeals");
   renderDailyTracker([]);
+  updateRemainingCalories();
   screenReaderSummary.textContent = "Daily tracker cleared.";
 }
 
@@ -186,6 +206,26 @@ function getStoredMeals() {
   } catch (error) {
     return [];
   }
+}
+
+function getDailyTotals() {
+  const meals = getStoredMeals();
+
+  return meals.reduce(
+    (sum, meal) => {
+      sum.calories += safeNumber(meal.calories);
+      sum.protein += safeNumber(meal.protein);
+      sum.carbs += safeNumber(meal.carbs);
+      sum.fat += safeNumber(meal.fat);
+      return sum;
+    },
+    {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0
+    }
+  );
 }
 
 function renderDailyTracker(meals) {
@@ -268,6 +308,134 @@ function renderDailyTracker(meals) {
   });
 }
 
+function calculateCalorieRequirement(announce = true) {
+  const sex = sexInput.value;
+  const age = safeNumber(ageInput.value);
+  const heightCm = safeNumber(heightInput.value);
+  const weightKg = safeNumber(weightInput.value);
+  const activityFactor = Number(activityInput.value);
+  const goal = goalInput.value;
+
+  if (age <= 0 || heightCm <= 0 || weightKg <= 0 || !Number.isFinite(activityFactor)) {
+    showError("Please enter valid age, height, weight, and activity level.");
+    return;
+  }
+
+  let bmr;
+
+  if (sex === "male") {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + 5;
+  } else {
+    bmr = 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  }
+
+  const tdee = bmr * activityFactor;
+
+  let target = tdee;
+  let goalText = "maintenance";
+
+  if (goal === "mildLoss") {
+    target = tdee - 250;
+    goalText = "mild weight loss";
+  } else if (goal === "loss") {
+    target = tdee - 500;
+    goalText = "weight loss";
+  } else if (goal === "gain") {
+    target = tdee + 300;
+    goalText = "weight gain";
+  }
+
+  target = Math.max(target, 1200);
+
+  latestCalorieTarget = {
+    bmr: cleanWholeNumber(bmr),
+    tdee: cleanWholeNumber(tdee),
+    target: cleanWholeNumber(target),
+    goalText
+  };
+
+  saveRequirementInputs();
+
+  bmrResult.innerHTML =
+    "<strong>BMR:</strong> " + latestCalorieTarget.bmr + " kcal/day";
+
+  tdeeResult.innerHTML =
+    "<strong>Estimated TDEE:</strong> " + latestCalorieTarget.tdee + " kcal/day";
+
+  targetResult.innerHTML =
+    "<strong>Suggested target:</strong> " +
+    latestCalorieTarget.target +
+    " kcal/day for " +
+    escapeHtml(goalText);
+
+  requirementExplanation.innerHTML =
+    "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. TDEE is BMR multiplied by your selected activity factor. This is an estimate, not a measured metabolic rate.";
+
+  updateRemainingCalories();
+
+  if (announce) {
+    screenReaderSummary.textContent =
+      "Calorie requirement calculated. Estimated target is " +
+      latestCalorieTarget.target +
+      " kilocalories per day.";
+  }
+}
+
+function updateRemainingCalories() {
+  if (!latestCalorieTarget) {
+    remainingResult.innerHTML =
+      "<strong>Today remaining:</strong> Calculate requirement first.";
+    return;
+  }
+
+  const totals = getDailyTotals();
+  const remaining = cleanWholeNumber(latestCalorieTarget.target - totals.calories);
+
+  if (remaining >= 0) {
+    remainingResult.innerHTML =
+      "<strong>Today remaining:</strong> " + remaining + " kcal remaining";
+  } else {
+    remainingResult.innerHTML =
+      "<strong>Today remaining:</strong> " +
+      Math.abs(remaining) +
+      " kcal above target";
+  }
+}
+
+function saveRequirementInputs() {
+  const data = {
+    sex: sexInput.value,
+    age: ageInput.value,
+    height: heightInput.value,
+    weight: weightInput.value,
+    activity: activityInput.value,
+    goal: goalInput.value
+  };
+
+  localStorage.setItem("nutrilensRequirementInputs", JSON.stringify(data));
+}
+
+function loadRequirementInputs() {
+  try {
+    const raw = localStorage.getItem("nutrilensRequirementInputs");
+
+    if (!raw) {
+      return;
+    }
+
+    const data = JSON.parse(raw);
+
+    if (data.sex) sexInput.value = data.sex;
+    if (data.age) ageInput.value = data.age;
+    if (data.height) heightInput.value = data.height;
+    if (data.weight) weightInput.value = data.weight;
+    if (data.activity) activityInput.value = data.activity;
+    if (data.goal) goalInput.value = data.goal;
+  } catch (error) {
+    return;
+  }
+}
+
 function showError(message) {
   errorMessage.textContent = message;
   errorMessage.classList.remove("hidden");
@@ -306,6 +474,16 @@ function safeNumber(value) {
   }
 
   return Math.round(number * 10) / 10;
+}
+
+function cleanWholeNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.round(number);
 }
 
 function escapeHtml(value) {

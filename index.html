@@ -16,7 +16,7 @@
     <header>
       <h1>NutriLens AI</h1>
       <p class="subtitle">
-        Analyze foods, assign them to meals, and track your daily calories and macros.
+        Analyze foods, assign them to meals, track your daily calories, and estimate your daily calorie requirement.
       </p>
     </header>
 
@@ -127,6 +127,73 @@
         </button>
       </section>
 
+      <section class="card" aria-labelledby="requirementTitle">
+        <h2 id="requirementTitle">Daily calorie requirement calculator</h2>
+        <p class="help-text">
+          Uses the Mifflin–St Jeor equation for BMR, then estimates TDEE using activity level.
+        </p>
+
+        <div class="calculator-grid">
+          <div class="field-group">
+            <label for="sexInput">Sex</label>
+            <select id="sexInput">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="ageInput">Age</label>
+            <input id="ageInput" type="number" min="10" max="120" value="35" />
+          </div>
+
+          <div class="field-group">
+            <label for="heightInput">Height in cm</label>
+            <input id="heightInput" type="number" min="100" max="250" value="170" />
+          </div>
+
+          <div class="field-group">
+            <label for="weightInput">Weight in kg</label>
+            <input id="weightInput" type="number" min="25" max="300" value="80" />
+          </div>
+
+          <div class="field-group">
+            <label for="activityInput">Activity level</label>
+            <select id="activityInput">
+              <option value="1.2">Sedentary: little or no exercise</option>
+              <option value="1.375">Light: exercise 1–3 days/week</option>
+              <option value="1.55">Moderate: exercise 3–5 days/week</option>
+              <option value="1.725">Very active: hard exercise 6–7 days/week</option>
+              <option value="1.9">Extra active: very hard exercise/physical job</option>
+            </select>
+          </div>
+
+          <div class="field-group">
+            <label for="goalInput">Goal</label>
+            <select id="goalInput">
+              <option value="maintain">Maintain weight</option>
+              <option value="mildLoss">Mild weight loss: about 250 kcal deficit/day</option>
+              <option value="loss">Weight loss: about 500 kcal deficit/day</option>
+              <option value="gain">Weight gain: about 300 kcal surplus/day</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="calculateRequirementButton" type="button">
+          Calculate requirement
+        </button>
+
+        <div class="requirement-result">
+          <p id="bmrResult"><strong>BMR:</strong> Not calculated yet</p>
+          <p id="tdeeResult"><strong>Estimated TDEE:</strong> Not calculated yet</p>
+          <p id="targetResult"><strong>Suggested target:</strong> Not calculated yet</p>
+          <p id="remainingResult"><strong>Today remaining:</strong> Not calculated yet</p>
+          <p id="requirementExplanation">
+            <strong>Explanation:</strong> Enter your details and calculate your daily calorie target.
+          </p>
+        </div>
+      </section>
+
       <section class="card" aria-labelledby="dailyTitle">
         <h2 id="dailyTitle">Daily calorie tracker</h2>
 
@@ -160,9 +227,9 @@
 
       <footer class="disclaimer" aria-label="Medical and nutrition disclaimer">
         <p>
-          ⚠️ Nutrition estimates are approximate and provided for general informational purposes only.
+          ⚠️ Nutrition and calorie requirement estimates are approximate and provided for general informational purposes only.
           This tool is not a substitute for professional medical advice, diagnosis, or treatment.
-          Accuracy may vary based on ingredients, cooking methods, and portion size.
+          Accuracy may vary based on ingredients, cooking methods, portion size, body composition, medical conditions, medications, pregnancy, lactation, and activity tracking error.
           Always consult a qualified healthcare professional for dietary or health-related decisions.
         </p>
       </footer>
