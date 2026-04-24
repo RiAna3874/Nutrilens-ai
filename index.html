@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>NutriLens AI - Accessible Meal Analyzer</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      font-size: 16px;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #062f24;
+      color: #ffffff;
+      padding: 24px;
+      line-height: 1.5;
+    }
+
+    .skip-link {
+      position: absolute;
+      left: -999px;
+      top: 12px;
+      background: #ffffff;
+      color: #062f24;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      z-index: 1000;
+    }
+
+    .skip-link:focus {
+      left: 12px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 32px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      margin: 0 0 12px;
+      font-weight: 800;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      max-width: 760px;
+      color: #e6fff7;
+    }
+
+    .card {
+      background: #124638;
+      padding: 28px;
+      border-radius: 18px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    label {
+      display: block;
+      font-size: 1.15rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .help-text {
+      font-size: 0.95rem;
+      color: #d8fff5;
+      margin: -2px 0 12px;
+    }
+
+    input,
+    textarea,
+    button {
+      font-size: 1.1rem;
+      border-radius: 10px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      margin-bottom: 24px;
+      color: white;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 16px;
+      margin-bottom: 24px;
+      resize: vertical;
+      color: #111111;
+      background: #ffffff;
+      border: 3px solid transparent;
+    }
+
+    input[type="number"] {
+      width: 260px;
+      max-width: 100%;
+      padding: 14px;
+      color: #111111;
+      background: #ffffff;
+      border: 3px solid transparent;
+    }
+
+    button {
+      padding: 14px 24px;
+      background: #18a98b;
+      color: white;
+      border: 3px solid #b7d0ff;
+      cursor: pointer;
+      font-weight: bold;
+      min-height: 52px;
+    }
+
+    button:hover {
+      background: #117d68;
+    }
+
+    button:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
+    }
+
+    input:focus,
+    textarea:focus,
+    button:focus {
+      outline: 4px solid #ffd43b;
+      outline-offset: 3px;
+      border-color: #ffd43b;
+    }
+
+    .row {
+      display: flex;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .field-group {
+      margin-bottom: 22px;
+    }
+
+    .result h2 {
+      font-size: 2rem;
+      margin-top: 0;
+    }
+
+    .result p {
+      font-size: 1.2rem;
+      margin: 10px 0;
+    }
+
+    .metric {
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
+    }
+
+    .error {
+      color: #ffffff;
+      background: #8b1e1e;
+      border: 2px solid #ffb3b3;
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+    }
+
+    .loading {
+      color: #1f1f1f;
+      background: #ffe08a;
+      font-weight: bold;
+      font-size: 1rem;
+      margin-top: 20px;
+      padding: 14px;
+      border-radius: 10px;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 16px;
+      }
+
+      .card {
+        padding: 20px;
+      }
+
+      input[type="number"],
+      button {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <a href="#mainContent" class="skip-link">Skip to main content</a>
+
+  <div class="container">
+    <header>
+      <h1>NutriLens AI</h1>
+      <p class="subtitle">
+        Upload a food photo or type a food description to estimate calories, protein, carbohydrates, and fat.
+      </p>
+    </header>
+
+    <main id="mainContent">
+      <section class="card" aria-labelledby="analyzerTitle">
+        <h2 id="analyzerTitle">Meal analyzer</h2>
+
+        <div class="field-group">
+          <label for="imageInput">Upload food image</label>
+          <p id="imageHelp" class="help-text">
+            Optional. You can also type a food description instead.
+          </p>
+          <input
+            id="imageInput"
+            type="file"
+            accept="image/*"
+            aria-describedby="imageHelp"
+          />
+        </div>
+
+        <div class="field-group">
+          <label for="descriptionInput">Food description</label>
+          <p id="descriptionHelp" class="help-text">
+            Example: rice, chicken curry, egg, dal, vegetables.
+          </p>
+          <textarea
+            id="descriptionInput"
+            placeholder="Example: rice, chicken curry, vegetables"
+            aria-describedby="descriptionHelp"
+          ></textarea>
+        </div>
+
+        <div class="field-group">
+          <label for="portionInput">Portion size in grams</label>
+          <p id="portionHelp" class="help-text">
+            Enter an estimated serving size. Default is 100 grams.
+          </p>
+
+          <div class="row">
+            <input
+              id="portionInput"
+              type="number"
+              value="100"
+              min="1"
+              aria-describedby="portionHelp"
+            />
+
+            <button id="analyzeButton" type="button">
+              Analyze meal
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="loadingMessage"
+          class="loading hidden"
+          role="status"
+          aria-live="polite"
+        ></div>
+
+        <div
+          id="errorMessage"
+          class="error hidden"
+          role="alert"
+          aria-live="assertive"
+        ></div>
+      </section>
+
+      <section class="card result" aria-labelledby="resultTitle">
+        <h2 id="resultTitle">Nutrition result</h2>
+
+        <p id="foodName" class="metric">
+          <strong>Food:</strong> Not analyzed yet
+        </p>
+
+        <p id="calories" class="metric">
+          <strong>Calories:</strong> 0 kcal
+        </p>
+
+        <p id="protein" class="metric">
+          <strong>Protein:</strong> 0 g
+        </p>
+
+        <p id="carbs" class="metric">
+          <strong>Carbs:</strong> 0 g
+        </p>
+
+        <p id="fat" class="metric">
+          <strong>Fat:</strong> 0 g
+        </p>
+
+        <p id="explanation">
+          <strong>Explanation:</strong> Waiting for meal analysis.
+        </p>
+      </section>
+
+      <p class="sr-only" id="screenReaderSummary" aria-live="polite"></p>
+    </main>
+  </div>
+
+  <script>
+    const BACKEND_URL = "http://localhost:3000/analyze";
+
+    const imageInput = document.getElementById("imageInput");
+    const descriptionInput = document.getElementById("descriptionInput");
+    const portionInput = document.getElementById("portionInput");
+    const analyzeButton = document.getElementById("analyzeButton");
+
+    const loadingMessage = document.getElementById("loadingMessage");
+    const errorMessage = document.getElementById("errorMessage");
+    const screenReaderSummary = document.getElementById("screenReaderSummary");
+
+    const foodName = document.getElementById("foodName");
+    const calories = document.getElementById("calories");
+    const protein = document.getElementById("protein");
+    const carbs = document.getElementById("carbs");
+    const fat = document.getElementById("fat");
+    const explanation = document.getElementById("explanation");
+
+    analyzeButton.addEventListener("click", analyzeMeal);
+
+    descriptionInput.addEventListener("keydown", function (event) {
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        analyzeMeal();
+      }
+    });
+
+    async function analyzeMeal() {
+      hideError();
+      hideLoading();
+
+      const imageFile = imageInput.files[0];
+      const description = descriptionInput.value.trim();
+      const portion = portionInput.value || "100";
+
+      if (!imageFile && !description) {
+        showError("Please upload a food image or type a food description.");
+        descriptionInput.focus();
+        return;
+      }
+
+      if (Number(portion) <= 0) {
+        showError("Please enter a portion size greater than 0 grams.");
+        portionInput.focus();
+        return;
+      }
+
+      const formData = new FormData();
+
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      formData.append("description", description);
+      formData.append("portion", portion);
+
+      analyzeButton.disabled = true;
+      analyzeButton.textContent = "Analyzing...";
+      showLoading("Analyzing meal. Please wait.");
+
+      try {
+        const response = await fetch(BACKEND_URL, {
+          method: "POST",
+          body: formData
+        });
+
+        const responseText = await response.text();
+
+        if (!responseText) {
+          throw new Error("Backend returned an empty response. Make sure the server is running.");
+        }
+
+        let data;
+
+        try {
+          data = JSON.parse(responseText);
+        } catch (jsonError) {
+          throw new Error("Backend did not return valid JSON.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data.error || "Meal analysis failed.");
+        }
+
+        updateResults(data);
+      } catch (error) {
+        showError(error.message || "Something went wrong.");
+      } finally {
+        analyzeButton.disabled = false;
+        analyzeButton.textContent = "Analyze meal";
+        hideLoading();
+      }
+    }
+
+    function updateResults(data) {
+      const food = safeText(data.food, "Unknown food");
+      const calorieValue = safeNumber(data.calories);
+      const proteinValue = safeNumber(data.protein);
+      const carbValue = safeNumber(data.carbs);
+      const fatValue = safeNumber(data.fat);
+      const explanationText = safeText(
+        data.explanation,
+        "Nutrition estimated from available information."
+      );
+
+      foodName.innerHTML = "<strong>Food:</strong> " + escapeHtml(food);
+      calories.innerHTML = "<strong>Calories:</strong> " + calorieValue + " kcal";
+      protein.innerHTML = "<strong>Protein:</strong> " + proteinValue + " g";
+      carbs.innerHTML = "<strong>Carbs:</strong> " + carbValue + " g";
+      fat.innerHTML = "<strong>Fat:</strong> " + fatValue + " g";
+      explanation.innerHTML =
+        "<strong>Explanation:</strong> " + escapeHtml(explanationText);
+
+      screenReaderSummary.textContent =
+        "Analysis complete. Food: " +
+        food +
+        ". Calories: " +
+        calorieValue +
+        " kilocalories. Protein: " +
+        proteinValue +
+        " grams. Carbohydrates: " +
+        carbValue +
+        " grams. Fat: " +
+        fatValue +
+        " grams.";
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.classList.remove("hidden");
+      screenReaderSummary.textContent = "Error: " + message;
+    }
+
+    function hideError() {
+      errorMessage.textContent = "";
+      errorMessage.classList.add("hidden");
+    }
+
+    function showLoading(message) {
+      loadingMessage.textContent = message;
+      loadingMessage.classList.remove("hidden");
+      screenReaderSummary.textContent = message;
+    }
+
+    function hideLoading() {
+      loadingMessage.textContent = "";
+      loadingMessage.classList.add("hidden");
+    }
+
+    function safeText(value, fallback) {
+      if (value === undefined || value === null || value === "") {
+        return fallback;
+      }
+
+      return String(value);
+    }
+
+    function safeNumber(value) {
+      const number = Number(value);
+
+      if (!Number.isFinite(number)) {
+        return 0;
+      }
+
+      return Math.round(number * 10) / 10;
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
