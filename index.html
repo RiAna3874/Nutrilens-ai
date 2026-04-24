@@ -133,14 +133,6 @@
           Uses Mifflin–St Jeor BMR, then estimates total daily energy expenditure using activity level.
         </p>
 
-        <div class="field-group">
-          <label for="unitSystemInput">Unit system</label>
-          <select id="unitSystemInput">
-            <option value="metric">Metric: kg and cm</option>
-            <option value="imperial">Imperial: lb, feet, inches</option>
-          </select>
-        </div>
-
         <div class="calculator-grid">
           <div class="field-group">
             <label for="sexInput">Sex</label>
@@ -155,29 +147,67 @@
             <input id="ageInput" type="number" min="10" max="120" value="35" />
           </div>
 
-          <div class="field-group metric-input">
-            <label for="heightCmInput">Height in cm</label>
-            <input id="heightCmInput" type="number" min="100" max="250" value="170" />
+          <div class="field-group">
+            <label for="heightUnitInput">Height</label>
+
+            <div class="unit-row">
+              <select id="heightUnitInput" aria-label="Height unit">
+                <option value="cm">cm</option>
+                <option value="ftin">ft / in</option>
+              </select>
+            </div>
+
+            <div id="heightCmGroup">
+              <input
+                id="heightCmInput"
+                type="number"
+                min="100"
+                max="250"
+                value="170"
+                aria-label="Height in centimeters"
+              />
+            </div>
+
+            <div id="heightFtInGroup" class="two-input-row hidden">
+              <input
+                id="heightFeetInput"
+                type="number"
+                min="1"
+                max="8"
+                value="5"
+                aria-label="Height feet"
+                placeholder="ft"
+              />
+              <input
+                id="heightInchesInput"
+                type="number"
+                min="0"
+                max="11"
+                value="7"
+                aria-label="Height inches"
+                placeholder="in"
+              />
+            </div>
           </div>
 
-          <div class="field-group metric-input">
-            <label for="weightKgInput">Weight in kg</label>
-            <input id="weightKgInput" type="number" min="25" max="300" value="80" />
-          </div>
+          <div class="field-group">
+            <label for="weightUnitInput">Weight</label>
 
-          <div class="field-group imperial-input hidden">
-            <label for="heightFeetInput">Height: feet</label>
-            <input id="heightFeetInput" type="number" min="1" max="8" value="5" />
-          </div>
+            <div class="unit-row">
+              <select id="weightUnitInput" aria-label="Weight unit">
+                <option value="kg">kg</option>
+                <option value="lb">lb</option>
+              </select>
+            </div>
 
-          <div class="field-group imperial-input hidden">
-            <label for="heightInchesInput">Height: inches</label>
-            <input id="heightInchesInput" type="number" min="0" max="11" value="7" />
-          </div>
-
-          <div class="field-group imperial-input hidden">
-            <label for="weightLbInput">Weight in lb</label>
-            <input id="weightLbInput" type="number" min="50" max="700" value="176" />
+            <input
+              id="weightInput"
+              type="number"
+              min="25"
+              max="700"
+              value="80"
+              aria-label="Weight"
+            />
           </div>
 
           <div class="field-group">

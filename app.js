@@ -26,14 +26,19 @@ const dailyCarbs = document.getElementById("dailyCarbs");
 const dailyFat = document.getElementById("dailyFat");
 const mealLog = document.getElementById("mealLog");
 
-const unitSystemInput = document.getElementById("unitSystemInput");
 const sexInput = document.getElementById("sexInput");
 const ageInput = document.getElementById("ageInput");
+
+const heightUnitInput = document.getElementById("heightUnitInput");
 const heightCmInput = document.getElementById("heightCmInput");
-const weightKgInput = document.getElementById("weightKgInput");
+const heightCmGroup = document.getElementById("heightCmGroup");
+const heightFtInGroup = document.getElementById("heightFtInGroup");
 const heightFeetInput = document.getElementById("heightFeetInput");
 const heightInchesInput = document.getElementById("heightInchesInput");
-const weightLbInput = document.getElementById("weightLbInput");
+
+const weightUnitInput = document.getElementById("weightUnitInput");
+const weightInput = document.getElementById("weightInput");
+
 const activityInput = document.getElementById("activityInput");
 const goalInput = document.getElementById("goalInput");
 const calculateRequirementButton = document.getElementById("calculateRequirementButton");
@@ -54,7 +59,8 @@ calculateRequirementButton.addEventListener("click", function () {
   calculateCalorieRequirement(true);
 });
 
-unitSystemInput.addEventListener("change", handleUnitSystemChange);
+heightUnitInput.addEventListener("change", handleHeightUnitChange);
+weightUnitInput.addEventListener("change", handleWeightUnitChange);
 
 descriptionInput.addEventListener("keydown", function (event) {
   if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
@@ -64,7 +70,8 @@ descriptionInput.addEventListener("keydown", function (event) {
 
 loadDailyTracker();
 loadRequirementInputs();
-handleUnitSystemChange(false);
+handleHeightUnitChange(false);
+handleWeightUnitChange(false);
 calculateCalorieRequirement(false);
 
 async function analyzeMeal() {
@@ -317,65 +324,66 @@ function renderDailyTracker(meals) {
   });
 }
 
-function handleUnitSystemChange(announce = true) {
-  const useImperial = unitSystemInput.value === "imperial";
-  const metricInputs = document.querySelectorAll(".metric-input");
-  const imperialInputs = document.querySelectorAll(".imperial-input");
+function handleHeightUnitChange(announce = true) {
+  const useFtIn = heightUnitInput.value === "ftin";
 
-  metricInputs.forEach((element) => {
-    element.classList.toggle("hidden", useImperial);
-  });
+  if (useFtIn) {
+    const cm = safeNumber(heightCmInput.value);
 
-  imperialInputs.forEach((element) => {
-    element.classList.toggle("hidden", !useImperial);
-  });
+    if (cm > 0) {
+      const totalInches = cm / 2.54;
+      const feet = Math.floor(totalInches / 12);
+      const inches = Math.round(totalInches - feet * 12);
 
-  if (useImperial) {
-    syncMetricToImperial();
+      heightFeetInput.value = feet;
+      heightInchesInput.value = inches;
+    }
+
+    heightCmGroup.classList.add("hidden");
+    heightFtInGroup.classList.remove("hidden");
   } else {
-    syncImperialToMetric();
+    const feet = safeNumber(heightFeetInput.value);
+    const inches = safeNumber(heightInchesInput.value);
+    const totalInches = feet * 12 + inches;
+
+    if (totalInches > 0) {
+      heightCmInput.value = Math.round(totalInches * 2.54);
+    }
+
+    heightCmGroup.classList.remove("hidden");
+    heightFtInGroup.classList.add("hidden");
   }
 
   saveRequirementInputs();
 
   if (announce) {
-    screenReaderSummary.textContent = useImperial
-      ? "Imperial units selected."
-      : "Metric units selected.";
+    screenReaderSummary.textContent =
+      useFtIn ? "Height unit changed to feet and inches." : "Height unit changed to centimeters.";
   }
 }
 
-function syncMetricToImperial() {
-  const heightCm = safeNumber(heightCmInput.value);
-  const weightKg = safeNumber(weightKgInput.value);
+function handleWeightUnitChange(announce = true) {
+  const currentWeight = safeNumber(weightInput.value);
 
-  if (heightCm > 0) {
-    const totalInches = heightCm / 2.54;
-    const feet = Math.floor(totalInches / 12);
-    const inches = Math.round(totalInches - feet * 12);
+  if (weightUnitInput.value === "lb") {
+    if (currentWeight > 0 && currentWeight < 300) {
+      weightInput.value = Math.round(currentWeight * 2.20462);
+    }
 
-    heightFeetInput.value = feet;
-    heightInchesInput.value = inches;
+    weightInput.setAttribute("aria-label", "Weight in pounds");
+  } else {
+    if (currentWeight > 0 && currentWeight > 60) {
+      weightInput.value = Math.round(currentWeight * 0.453592 * 10) / 10;
+    }
+
+    weightInput.setAttribute("aria-label", "Weight in kilograms");
   }
 
-  if (weightKg > 0) {
-    weightLbInput.value = Math.round(weightKg * 2.20462);
-  }
-}
+  saveRequirementInputs();
 
-function syncImperialToMetric() {
-  const feet = safeNumber(heightFeetInput.value);
-  const inches = safeNumber(heightInchesInput.value);
-  const weightLb = safeNumber(weightLbInput.value);
-
-  const totalInches = feet * 12 + inches;
-
-  if (totalInches > 0) {
-    heightCmInput.value = Math.round(totalInches * 2.54);
-  }
-
-  if (weightLb > 0) {
-    weightKgInput.value = Math.round(weightLb * 0.453592 * 10) / 10;
+  if (announce) {
+    screenReaderSummary.textContent =
+      weightUnitInput.value === "lb" ? "Weight unit changed to pounds." : "Weight unit changed to kilograms.";
   }
 }
 
@@ -388,18 +396,21 @@ function calculateCalorieRequirement(announce = true) {
   const goal = goalInput.value;
 
   let heightCm;
-  let weightKg;
 
-  if (unitSystemInput.value === "imperial") {
+  if (heightUnitInput.value === "ftin") {
     const feet = safeNumber(heightFeetInput.value);
     const inches = safeNumber(heightInchesInput.value);
-    const weightLb = safeNumber(weightLbInput.value);
-
     heightCm = (feet * 12 + inches) * 2.54;
-    weightKg = weightLb * 0.453592;
   } else {
     heightCm = safeNumber(heightCmInput.value);
-    weightKg = safeNumber(weightKgInput.value);
+  }
+
+  let weightKg;
+
+  if (weightUnitInput.value === "lb") {
+    weightKg = safeNumber(weightInput.value) * 0.453592;
+  } else {
+    weightKg = safeNumber(weightInput.value);
   }
 
   if (
@@ -460,7 +471,7 @@ function calculateCalorieRequirement(announce = true) {
     escapeHtml(goalText);
 
   requirementExplanation.innerHTML =
-    "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. TDEE is BMR multiplied by your selected activity factor. Height and weight are converted internally to cm and kg before calculation.";
+    "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. Height and weight are converted internally to cm and kg before calculation. TDEE is BMR multiplied by your selected activity factor.";
 
   updateRemainingCalories();
 
@@ -495,14 +506,14 @@ function updateRemainingCalories() {
 
 function saveRequirementInputs() {
   const data = {
-    unitSystem: unitSystemInput.value,
     sex: sexInput.value,
     age: ageInput.value,
+    heightUnit: heightUnitInput.value,
     heightCm: heightCmInput.value,
-    weightKg: weightKgInput.value,
     heightFeet: heightFeetInput.value,
     heightInches: heightInchesInput.value,
-    weightLb: weightLbInput.value,
+    weightUnit: weightUnitInput.value,
+    weight: weightInput.value,
     activity: activityInput.value,
     goal: goalInput.value
   };
@@ -520,14 +531,14 @@ function loadRequirementInputs() {
 
     const data = JSON.parse(raw);
 
-    if (data.unitSystem) unitSystemInput.value = data.unitSystem;
     if (data.sex) sexInput.value = data.sex;
     if (data.age) ageInput.value = data.age;
+    if (data.heightUnit) heightUnitInput.value = data.heightUnit;
     if (data.heightCm) heightCmInput.value = data.heightCm;
-    if (data.weightKg) weightKgInput.value = data.weightKg;
     if (data.heightFeet) heightFeetInput.value = data.heightFeet;
     if (data.heightInches) heightInchesInput.value = data.heightInches;
-    if (data.weightLb) weightLbInput.value = data.weightLb;
+    if (data.weightUnit) weightUnitInput.value = data.weightUnit;
+    if (data.weight) weightInput.value = data.weight;
     if (data.activity) activityInput.value = data.activity;
     if (data.goal) goalInput.value = data.goal;
   } catch (error) {
