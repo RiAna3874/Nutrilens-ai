@@ -142,7 +142,7 @@ function updateDateLabel() {
   const dayNumber = selectedDate.getDate();
 
   if (selectedKey === todayKey) {
-    currentDateLabel.textContent = `${dayNumber} Today`;
+    currentDateLabel.textContent = `📅 ${dayNumber} Today`;
     return;
   }
 
@@ -151,12 +151,12 @@ function updateDateLabel() {
   const yesterdayKey = yesterday.toISOString().slice(0, 10);
 
   if (selectedKey === yesterdayKey) {
-    currentDateLabel.textContent = `${dayNumber} Yesterday`;
+    currentDateLabel.textContent = `📅 ${dayNumber} Yesterday`;
     return;
   }
 
   currentDateLabel.textContent =
-    `${dayNumber} ` +
+    `📅 ${dayNumber} ` +
     selectedDate.toLocaleDateString(undefined, {
       month: "short",
       year: "numeric"
@@ -253,6 +253,16 @@ function calculateSelectedFoodNutrition(food) {
     id: createId(),
     mealType: mealTypeInput?.value || "Snack",
     food: `${food.name} (${grams}g)`,
+    items: [
+      {
+        name: food.name,
+        amount: `${grams}g`,
+        calories: cleanNumber(food.calories * multiplier),
+        protein: cleanNumber(food.protein * multiplier),
+        carbs: cleanNumber(food.carbs * multiplier),
+        fat: cleanNumber(food.fat * multiplier)
+      }
+    ],
     calories: cleanNumber(food.calories * multiplier),
     protein: cleanNumber(food.protein * multiplier),
     carbs: cleanNumber(food.carbs * multiplier),
@@ -331,6 +341,7 @@ async function analyzeMeal() {
       id: createId(),
       mealType: mealTypeInput?.value || "Snack",
       food: safeText(data.food, "Unknown food"),
+      items: Array.isArray(data.items) ? data.items : [],
       calories: safeNumber(data.calories),
       protein: safeNumber(data.protein),
       carbs: safeNumber(data.carbs),
@@ -406,11 +417,39 @@ function addLatestMealToDay() {
 
 function updateResults(data) {
   if (foodName) foodName.innerHTML = "<strong>Food:</strong> " + escapeHtml(data.food);
-  if (calories) calories.innerHTML = "<strong>Calories:</strong> " + data.calories + " kcal";
-  if (protein) protein.innerHTML = "<strong>Protein:</strong> " + data.protein + " g";
-  if (carbs) carbs.innerHTML = "<strong>Carbs:</strong> " + data.carbs + " g";
-  if (fat) fat.innerHTML = "<strong>Fat:</strong> " + data.fat + " g";
+  if (calories) calories.innerHTML = "<strong>Calories:</strong> " + safeNumber(data.calories) + " kcal";
+  if (protein) protein.innerHTML = "<strong>Protein:</strong> " + safeNumber(data.protein) + " g";
+  if (carbs) carbs.innerHTML = "<strong>Carbs:</strong> " + safeNumber(data.carbs) + " g";
+  if (fat) fat.innerHTML = "<strong>Fat:</strong> " + safeNumber(data.fat) + " g";
   if (explanation) explanation.innerHTML = "<strong>Explanation:</strong> " + escapeHtml(data.explanation);
+
+  let breakdown = document.getElementById("itemBreakdown");
+
+  if (!breakdown && explanation) {
+    breakdown = document.createElement("div");
+    breakdown.id = "itemBreakdown";
+    breakdown.className = "meal-log";
+    explanation.insertAdjacentElement("afterend", breakdown);
+  }
+
+  if (breakdown) {
+    if (Array.isArray(data.items) && data.items.length > 0) {
+      breakdown.innerHTML =
+        "<h3>Item breakdown</h3>" +
+        data.items
+          .map(
+            (item) => `
+              <div class="meal-item">
+                <strong>${escapeHtml(item.name)} (${escapeHtml(item.amount)})</strong><br />
+                ${safeNumber(item.calories)} kcal | Protein ${safeNumber(item.protein)} g | Carbs ${safeNumber(item.carbs)} g | Fat ${safeNumber(item.fat)} g
+              </div>
+            `
+          )
+          .join("");
+    } else {
+      breakdown.innerHTML = "";
+    }
+  }
 
   announce("Analysis complete.");
 }
