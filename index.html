@@ -196,12 +196,6 @@
       cursor: pointer;
     }
 
-    .meal-detail {
-      margin-top: 14px;
-      font-size: 1rem;
-      color: #333;
-    }
-
     .insight-btn {
       width: 100%;
       margin-top: 18px;
@@ -291,6 +285,10 @@
       margin-top: 16px;
     }
 
+    button:active {
+      transform: scale(0.97);
+    }
+
     button:disabled {
       opacity: 0.55;
       cursor: not-allowed;
@@ -314,10 +312,6 @@
       padding: 14px;
       margin-top: 14px;
       color: #243447;
-    }
-
-    .result-box p {
-      margin: 8px 0;
     }
 
     .daily-hidden-ids {
@@ -344,6 +338,60 @@
       margin-bottom: 10px;
       color: #243447;
       line-height: 1.5;
+    }
+
+    .new-item {
+      animation: fadeHighlight 1.1s ease;
+    }
+
+    @keyframes fadeHighlight {
+      0% {
+        background: #4caf50;
+        color: white;
+      }
+      100% {
+        background: #f6f8fc;
+        color: #243447;
+      }
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 58px;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid #dde3ee;
+      border-radius: 16px;
+      box-shadow: 0 12px 28px rgba(31, 41, 55, 0.18);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 999;
+    }
+
+    .search-result-item {
+      padding: 14px;
+      border-bottom: 1px solid #eef2f7;
+      cursor: pointer;
+      color: #18293b;
+    }
+
+    .search-result-item:hover {
+      background: #eef7ff;
+    }
+
+    .search-result-name {
+      font-weight: 800;
+    }
+
+    .search-result-meta {
+      color: #667085;
+      font-size: 0.9rem;
+      margin-top: 4px;
     }
 
     .error {
@@ -425,22 +473,10 @@
       </div>
 
       <div class="macro-row">
-        <div>
-          <div class="macro-bar"><div class="macro-fill"></div></div>
-          Fat
-        </div>
-        <div>
-          <div class="macro-bar"><div class="macro-fill"></div></div>
-          Protein
-        </div>
-        <div>
-          <div class="macro-bar"><div class="macro-fill"></div></div>
-          Carbs
-        </div>
-        <div>
-          <div class="macro-bar"><div class="macro-fill"></div></div>
-          Fiber
-        </div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Fat</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Protein</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Carbs</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Fiber</div>
       </div>
     </section>
 
@@ -460,7 +496,7 @@
               <p class="meal-subtitle" id="breakfastSummary">0 / 450 Cal</p>
             </div>
           </div>
-          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Breakfast';document.getElementById('descriptionInput').focus();">+</button>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Breakfast';document.getElementById('foodSearchInput').focus();">+</button>
         </div>
       </section>
 
@@ -473,7 +509,7 @@
               <p class="meal-subtitle" id="lunchSummary">0 / 616 Cal</p>
             </div>
           </div>
-          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Lunch';document.getElementById('descriptionInput').focus();">+</button>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Lunch';document.getElementById('foodSearchInput').focus();">+</button>
         </div>
         <button class="insight-btn" type="button">✦ Get Insights on this meal →</button>
       </section>
@@ -487,7 +523,7 @@
               <p class="meal-subtitle" id="dinnerSummary">0 / 450 Cal</p>
             </div>
           </div>
-          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Dinner';document.getElementById('descriptionInput').focus();">+</button>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Dinner';document.getElementById('foodSearchInput').focus();">+</button>
         </div>
       </section>
 
@@ -500,7 +536,7 @@
               <p class="meal-subtitle" id="snackSummary">0 / 150 Cal</p>
             </div>
           </div>
-          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Snack';document.getElementById('descriptionInput').focus();">+</button>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Snack';document.getElementById('foodSearchInput').focus();">+</button>
         </div>
       </section>
 
@@ -515,13 +551,24 @@
           <option value="Snack">Snack</option>
         </select>
 
+        <label for="foodSearchInput">Search food database</label>
+        <div class="search-box">
+          <input
+            id="foodSearchInput"
+            type="text"
+            placeholder="Search food, e.g. rice, chicken, banana"
+            autocomplete="off"
+          />
+          <div id="foodSearchResults" class="search-results hidden"></div>
+        </div>
+
         <label for="imageInput">Upload food image</label>
         <input id="imageInput" type="file" accept="image/*" />
 
         <label for="descriptionInput">Food description</label>
         <textarea id="descriptionInput" placeholder="Example: rice 150g chicken 120g egg 2"></textarea>
 
-        <label for="portionInput">Default portion size in grams</label>
+        <label for="portionInput">Portion size in grams</label>
         <input id="portionInput" type="number" value="100" min="1" />
 
         <button id="analyzeButton" class="primary" type="button">Analyze meal</button>
@@ -651,6 +698,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>

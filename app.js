@@ -7,6 +7,9 @@ const descriptionInput = $("descriptionInput");
 const portionInput = $("portionInput");
 const mealTypeInput = $("mealTypeInput");
 
+const foodSearchInput = $("foodSearchInput");
+const foodSearchResults = $("foodSearchResults");
+
 const analyzeButton = $("analyzeButton");
 const addToDayButton = $("addToDayButton");
 const clearDayButton = $("clearDayButton");
@@ -56,10 +59,13 @@ const requirementExplanation = $("requirementExplanation");
 let latestAnalysis = null;
 let latestCalorieTarget = null;
 let latestAddedMealId = null;
+let selectedSearchFood = null;
+let searchTimer = null;
 
 if (analyzeButton) analyzeButton.addEventListener("click", analyzeMeal);
 if (addToDayButton) addToDayButton.addEventListener("click", addLatestMealToDay);
 if (clearDayButton) clearDayButton.addEventListener("click", clearDailyTracker);
+if (foodSearchInput) foodSearchInput.addEventListener("input", handleFoodSearchInput);
 
 if (calculateRequirementButton) {
   calculateRequirementButton.addEventListener("click", function () {
@@ -78,6 +84,17 @@ if (descriptionInput) {
   });
 }
 
+document.addEventListener("click", function (event) {
+  if (!foodSearchResults || !foodSearchInput) return;
+
+  if (
+    !foodSearchResults.contains(event.target) &&
+    event.target !== foodSearchInput
+  ) {
+    hideFoodSearchResults();
+  }
+});
+
 loadRequirementInputs();
 handleHeightUnitChange(false);
 handleWeightUnitChange(false);
@@ -85,16 +102,143 @@ calculateCalorieRequirement(false);
 renderDailyTracker(getStoredMeals());
 updateTopDashboard();
 
+async function handleFoodSearchInput() {
+  selectedSearchFood = null;
+
+  const query = foodSearchInput.value.trim();
+
+  if (query.length < 2) {
+    hideFoodSearchResults();
+    return;
+  }
+
+  clearTimeout(searchTimer);
+
+  searchTimer = setTimeout(async () => {
+    try {
+      foodSearchResults.innerHTML = `
+        <div class="search-result-item">
+          Searching...
+        </div>
+      `;
+      foodSearchResults.classList.remove("hidden");
+
+      const response = await fetch(`/api/search-food?q=${encodeURIComponent(query)}`);
+      const foods = await response.json();
+
+      if (!response.ok) {
+        throw new Error(foods.error || "Food search failed.");
+      }
+
+      if (!Array.isArray(foods) || foods.length === 0) {
+        foodSearchResults.innerHTML = `
+          <div class="search-result-item">
+            No foods found.
+          </div>
+        `;
+        foodSearchResults.classList.remove("hidden");
+        return;
+      }
+
+      foodSearchResults.innerHTML = foods
+        .map(
+          (food) => `
+            <div class="search-result-item" data-food-id="${food.id}">
+              <div class="search-result-name">${escapeHtml(food.name)}</div>
+              <div class="search-result-meta">
+                ${cleanNumber(food.calories)} kcal / 100g
+                ${food.protein ? " • P " + cleanNumber(food.protein) + "g" : ""}
+                ${food.carbs ? " • C " + cleanNumber(food.carbs) + "g" : ""}
+                ${food.fat ? " • F " + cleanNumber(food.fat) + "g" : ""}
+                ${food.brand ? " • " + escapeHtml(food.brand) : ""}
+              </div>
+            </div>
+          `
+        )
+        .join("");
+
+      foodSearchResults.classList.remove("hidden");
+
+      document.querySelectorAll(".search-result-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          const selected = foods.find(
+            (food) => String(food.id) === String(item.dataset.foodId)
+          );
+
+          if (!selected) return;
+
+          selectedSearchFood = selected;
+          foodSearchInput.value = selected.name;
+          descriptionInput.value = selected.name;
+          hideFoodSearchResults();
+
+          latestAnalysis = calculateSelectedFoodNutrition(selected);
+          updateResults(latestAnalysis);
+
+          if (addToDayButton) {
+            addToDayButton.disabled = false;
+            addToDayButton.textContent = "Add to daily tracker";
+          }
+        });
+      });
+    } catch (error) {
+      console.error("Food search error:", error);
+      foodSearchResults.innerHTML = `
+        <div class="search-result-item">
+          Search failed. Check USDA_API_KEY.
+        </div>
+      `;
+      foodSearchResults.classList.remove("hidden");
+    }
+  }, 350);
+}
+
+function hideFoodSearchResults() {
+  if (!foodSearchResults) return;
+  foodSearchResults.innerHTML = "";
+  foodSearchResults.classList.add("hidden");
+}
+
+function calculateSelectedFoodNutrition(food) {
+  const grams = safeNumber(portionInput?.value || 100);
+  const multiplier = grams / 100;
+
+  return {
+    id: createId(),
+    mealType: mealTypeInput?.value || "Snack",
+    food: `${food.name} (${grams}g)`,
+    calories: cleanNumber(food.calories * multiplier),
+    protein: cleanNumber(food.protein * multiplier),
+    carbs: cleanNumber(food.carbs * multiplier),
+    fat: cleanNumber(food.fat * multiplier),
+    explanation: "Estimated from selected USDA FoodData Central search result.",
+    timestamp: new Date().toISOString(),
+    date: getTodayDateKey()
+  };
+}
+
 async function analyzeMeal() {
   hideError();
   hideLoading();
+
+  if (selectedSearchFood) {
+    latestAnalysis = calculateSelectedFoodNutrition(selectedSearchFood);
+    updateResults(latestAnalysis);
+
+    if (addToDayButton) {
+      addToDayButton.disabled = false;
+      addToDayButton.textContent = "Add to daily tracker";
+    }
+
+    return;
+  }
 
   const imageFile = imageInput?.files?.[0];
   const description = descriptionInput?.value?.trim() || "";
   const portion = portionInput?.value || "100";
 
   if (!imageFile && !description) {
-    showError("Please upload a food image or type a food description.");
+    showError("Please upload a food image, search food, or type a food description.");
     descriptionInput?.focus();
     return;
   }
@@ -174,7 +318,7 @@ function addLatestMealToDay() {
   hideError();
 
   if (!latestAnalysis) {
-    showError("Please analyze a meal first, then click Add to daily tracker.");
+    showError("Please analyze or select a food first, then click Add to daily tracker.");
     return;
   }
 
@@ -187,6 +331,7 @@ function addLatestMealToDay() {
   const newMeal = {
     ...latestAnalysis,
     id: createId(),
+    mealType: mealTypeInput?.value || latestAnalysis.mealType || "Snack",
     date: getTodayDateKey(),
     timestamp: new Date().toISOString()
   };
@@ -210,7 +355,11 @@ function addLatestMealToDay() {
   }, 1400);
 
   if (descriptionInput) descriptionInput.value = "";
+  if (foodSearchInput) foodSearchInput.value = "";
   if (imageInput) imageInput.value = "";
+
+  selectedSearchFood = null;
+  latestAnalysis = null;
 
   announce(`${newMeal.food} added to ${newMeal.mealType}.`);
 }
@@ -281,12 +430,7 @@ function getDailyTotals() {
       sum.fat += safeNumber(meal.fat);
       return sum;
     },
-    {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0
-    }
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
   );
 }
 
@@ -354,19 +498,8 @@ function renderDailyTracker(meals) {
 }
 
 function updateMealSummaries(todayMeals) {
-  const mealTargets = {
-    Breakfast: 450,
-    Lunch: 616,
-    Dinner: 450,
-    Snack: 150
-  };
-
-  const totals = {
-    Breakfast: 0,
-    Lunch: 0,
-    Dinner: 0,
-    Snack: 0
-  };
+  const mealTargets = { Breakfast: 450, Lunch: 616, Dinner: 450, Snack: 150 };
+  const totals = { Breakfast: 0, Lunch: 0, Dinner: 0, Snack: 0 };
 
   todayMeals.forEach((meal) => {
     const type = totals[meal.mealType] !== undefined ? meal.mealType : "Snack";
@@ -456,10 +589,7 @@ function calculateLastSevenDayDeficit() {
   const tdee = latestCalorieTarget?.tdee || savedTdee;
 
   if (!tdee || !Number.isFinite(tdee)) {
-    return {
-      deficit: 0,
-      loggedDays: 0
-    };
+    return { deficit: 0, loggedDays: 0 };
   }
 
   const meals = getStoredMeals();
@@ -470,10 +600,7 @@ function calculateLastSevenDayDeficit() {
 
   dates.forEach((dateKey) => {
     const mealsForDay = meals.filter((meal) => meal.date === dateKey);
-
-    if (mealsForDay.length === 0) {
-      return;
-    }
+    if (mealsForDay.length === 0) return;
 
     const dayCalories = mealsForDay.reduce(
       (sum, meal) => sum + safeNumber(meal.calories),
@@ -484,10 +611,7 @@ function calculateLastSevenDayDeficit() {
     loggedDays += 1;
   });
 
-  return {
-    deficit: totalDeficit,
-    loggedDays
-  };
+  return { deficit: totalDeficit, loggedDays };
 }
 
 function handleHeightUnitChange(announceChange = true) {
@@ -775,18 +899,12 @@ function announce(message) {
 }
 
 function createId() {
-  if (crypto && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-
+  if (crypto && crypto.randomUUID) return crypto.randomUUID();
   return String(Date.now()) + String(Math.random());
 }
 
 function safeText(value, fallback) {
-  if (value === undefined || value === null || value === "") {
-    return fallback;
-  }
-
+  if (value === undefined || value === null || value === "") return fallback;
   return String(value);
 }
 

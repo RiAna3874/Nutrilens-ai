@@ -18,12 +18,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 app.use(cors());
+app.use(express.json());
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, "public")));
 
-const ai = GEMINI_API_KEY
-  ? new GoogleGenAI({ apiKey: GEMINI_API_KEY })
-  : null;
+const ai = GEMINI_API_KEY ? new GoogleGenAI({ apiKey: GEMINI_API_KEY }) : null;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -43,6 +42,7 @@ const localFoods = {
   banana: { food: "Banana", calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3, gramsPerUnit: 118 },
   apple: { food: "Apple", calories: 52, protein: 0.3, carbs: 13.8, fat: 0.2, gramsPerUnit: 182 },
   dal: { food: "Cooked lentils / dal", calories: 116, protein: 9, carbs: 20, fat: 0.4 },
+  daal: { food: "Cooked lentils / dal", calories: 116, protein: 9, carbs: 20, fat: 0.4 },
   fish: { food: "Cooked fish", calories: 140, protein: 22, carbs: 0, fat: 5 },
   beef: { food: "Cooked beef", calories: 250, protein: 26, carbs: 0, fat: 15 },
   salmon: { food: "Cooked salmon", calories: 208, protein: 20, carbs: 0, fat: 13 },
@@ -70,6 +70,52 @@ app.get("/health", (req, res) => {
   });
 });
 
+app.get("/api/search-food", async (req, res) => {
+  try {
+    const query = String(req.query.q || "").trim();
+
+    if (!query) return res.json([]);
+
+    if (!USDA_API_KEY) {
+      return res.status(400).json({ error: "USDA_API_KEY is missing." });
+    }
+
+    const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
+    url.searchParams.set("api_key", USDA_API_KEY);
+    url.searchParams.set("query", query);
+    url.searchParams.set("pageSize", "12");
+    url.searchParams.set("dataType", "Foundation,SR Legacy,Survey (FNDDS),Branded");
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      return res.status(response.status).json({ error: "USDA food search failed." });
+    }
+
+    const data = await response.json();
+
+    const foods = (data.foods || []).map((food) => {
+      const nutrients = extractUsdaNutrients(food);
+
+      return {
+        id: food.fdcId,
+        name: food.description || "Unknown food",
+        brand: food.brandName || food.brandOwner || "",
+        dataType: food.dataType || "",
+        calories: cleanNumber(nutrients.calories),
+        protein: cleanNumber(nutrients.protein),
+        carbs: cleanNumber(nutrients.carbs),
+        fat: cleanNumber(nutrients.fat)
+      };
+    });
+
+    res.json(foods);
+  } catch (error) {
+    console.error("Food search error:", error);
+    res.status(500).json({ error: "Food search failed." });
+  }
+});
+
 app.post("/analyze", upload.single("image"), async (req, res) => {
   try {
     const description = req.body.description || "";
@@ -77,25 +123,17 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
     const imageFile = req.file;
 
     if (!description.trim() && !imageFile) {
-      return res.status(400).json({
-        error: "Please upload an image or describe the food."
-      });
+      return res.status(400).json({ error: "Please upload an image or describe the food." });
     }
 
     const parsedFoods = parseFoodDescription(description, defaultPortion);
 
     if (parsedFoods.length > 0) {
       const usdaResult = await analyzeWithUsda(parsedFoods);
-
-      if (usdaResult.found) {
-        return res.json(usdaResult.result);
-      }
+      if (usdaResult.found) return res.json(usdaResult.result);
 
       const localResult = analyzeLocally(parsedFoods);
-
-      if (localResult.found) {
-        return res.json(localResult.result);
-      }
+      if (localResult.found) return res.json(localResult.result);
     }
 
     if (ai && (imageFile || description.trim())) {
@@ -113,39 +151,19 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
       protein: 0,
       carbs: 0,
       fat: 0,
-      explanation:
-        "Food was not found in USDA, local database, or AI fallback."
+      explanation: "Food was not found in USDA, local database, or AI fallback."
     });
   } catch (error) {
     console.error("Analyze error:", error);
-
-    return res.status(500).json({
-      error: "Something went wrong while analyzing the meal."
-    });
+    return res.status(500).json({ error: "Something went wrong while analyzing the meal." });
   }
 });
 
 function parseFoodDescription(description, defaultPortion) {
   const text = normalizeText(description);
-
   if (!text) return [];
 
-  const knownFoods = [
-    "rice",
-    "chicken",
-    "egg",
-    "banana",
-    "apple",
-    "dal",
-    "daal",
-    "lentil",
-    "fish",
-    "beef",
-    "salmon",
-    "roti",
-    "chapati",
-    "vegetable",
-    "vegetables",
+  const knownFoods = Object.keys(localFoods).concat([
     "potato",
     "bread",
     "milk",
@@ -154,8 +172,15 @@ function parseFoodDescription(description, defaultPortion) {
     "pasta",
     "noodle",
     "beans",
-    "avocado"
-  ];
+    "avocado",
+    "orange",
+    "cheese",
+    "tuna",
+    "shrimp",
+    "turkey",
+    "spinach",
+    "broccoli"
+  ]);
 
   const found = [];
 
@@ -184,9 +209,7 @@ function parseFoodDescription(description, defaultPortion) {
 }
 
 async function analyzeWithUsda(parsedFoods) {
-  if (!USDA_API_KEY) {
-    return { found: false, result: null };
-  }
+  if (!USDA_API_KEY) return { found: false, result: null };
 
   const total = {
     foods: [],
@@ -200,7 +223,6 @@ async function analyzeWithUsda(parsedFoods) {
 
   for (const item of parsedFoods) {
     const usdaFood = await searchUsdaFood(item.name);
-
     if (!usdaFood) continue;
 
     const nutrients = extractUsdaNutrients(usdaFood);
@@ -215,9 +237,7 @@ async function analyzeWithUsda(parsedFoods) {
     matchedCount += 1;
   }
 
-  if (matchedCount === 0) {
-    return { found: false, result: null };
-  }
+  if (matchedCount === 0) return { found: false, result: null };
 
   return {
     found: true,
@@ -236,24 +256,16 @@ async function analyzeWithUsda(parsedFoods) {
 async function searchUsdaFood(query) {
   try {
     const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
-
     url.searchParams.set("api_key", USDA_API_KEY);
     url.searchParams.set("query", query);
     url.searchParams.set("pageSize", "5");
     url.searchParams.set("dataType", "Foundation,SR Legacy,Survey (FNDDS)");
 
     const response = await fetch(url);
-
-    if (!response.ok) {
-      console.error("USDA response error:", response.status);
-      return null;
-    }
+    if (!response.ok) return null;
 
     const data = await response.json();
-
-    if (!data.foods || data.foods.length === 0) {
-      return null;
-    }
+    if (!data.foods || data.foods.length === 0) return null;
 
     return data.foods[0];
   } catch (error) {
@@ -274,12 +286,16 @@ function extractUsdaNutrients(food) {
 
   food.foodNutrients.forEach((nutrient) => {
     const name = String(nutrient.nutrientName || "").toLowerCase();
+    const unitName = String(nutrient.unitName || "").toLowerCase();
     const value = Number(nutrient.value || 0);
 
-    if (name.includes("energy")) nutrients.calories = value;
+    if (name.includes("energy") && (unitName === "kcal" || nutrients.calories === 0)) {
+      nutrients.calories = value;
+    }
+
     if (name.includes("protein")) nutrients.protein = value;
     if (name.includes("carbohydrate")) nutrients.carbs = value;
-    if (name.includes("total lipid") || name === "fat") nutrients.fat = value;
+    if (name.includes("total lipid") || name.includes("total fat")) nutrients.fat = value;
   });
 
   return nutrients;
@@ -315,9 +331,7 @@ function analyzeLocally(parsedFoods) {
     matchedCount += 1;
   });
 
-  if (matchedCount === 0) {
-    return { found: false, result: null };
-  }
+  if (matchedCount === 0) return { found: false, result: null };
 
   return {
     found: true,
@@ -327,16 +341,13 @@ function analyzeLocally(parsedFoods) {
       protein: cleanNumber(total.protein),
       carbs: cleanNumber(total.carbs),
       fat: cleanNumber(total.fat),
-      explanation:
-        "Estimated using the built-in local nutrition database. USDA match was unavailable."
+      explanation: "Estimated using the built-in local nutrition database. USDA match was unavailable."
     }
   };
 }
 
 async function analyzeWithGemini(description, portion, imageFile) {
-  if (!ai) {
-    throw new Error("Gemini API key missing.");
-  }
+  if (!ai) throw new Error("Gemini API key missing.");
 
   const parts = [];
 
@@ -429,7 +440,6 @@ function detectAmountForFood(text, foodName, defaultPortion) {
 
   if (unitMatch) {
     const units = Number(unitMatch[1]);
-
     const localMatch = localFoods[foodName];
 
     if (localMatch?.gramsPerUnit) {
@@ -456,24 +466,17 @@ function escapeRegExp(value) {
 
 function cleanNumber(value) {
   const number = Number(value);
-
   if (!Number.isFinite(number)) return 0;
-
   return Math.round(number * 10) / 10;
 }
 
 app.use((err, req, res, next) => {
   console.error("Server error:", err.message);
-
-  res.status(400).json({
-    error: err.message || "Request failed."
-  });
+  res.status(400).json({ error: err.message || "Request failed." });
 });
 
 app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found."
-  });
+  res.status(404).json({ error: "Route not found." });
 });
 
 app.listen(PORT, () => {
