@@ -423,6 +423,7 @@ function buildDeficitSummaryHtml() {
   const lastWeek = calculateLastSevenDayDeficit();
   const expectedLossLb = lastWeek.deficit / 3500;
   const expectedLossKg = lastWeek.deficit / 7700;
+  const loggedDays = lastWeek.loggedDays || 0;
 
   const remainingText =
     remainingToTarget >= 0
@@ -442,9 +443,10 @@ function buildDeficitSummaryHtml() {
     </div>
 
     <div class="meal-item">
-      <strong>Last 7 days:</strong><br />
-      Total calorie deficit: ${cleanWholeNumber(lastWeek.deficit)} kcal<br />
-      Expected weight loss: ${cleanNumber(expectedLossLb)} lb (${cleanNumber(expectedLossKg)} kg)
+      <strong>Last 7 logged days:</strong><br />
+      Logged days counted: ${loggedDays}<br />
+      Total calorie deficit from logged days only: ${cleanWholeNumber(lastWeek.deficit)} kcal<br />
+      Expected weight change: ${cleanNumber(expectedLossLb)} lb (${cleanNumber(expectedLossKg)} kg)
     </div>
   `;
 }
@@ -454,23 +456,38 @@ function calculateLastSevenDayDeficit() {
   const tdee = latestCalorieTarget?.tdee || savedTdee;
 
   if (!tdee || !Number.isFinite(tdee)) {
-    return { deficit: 0 };
+    return {
+      deficit: 0,
+      loggedDays: 0
+    };
   }
 
   const meals = getStoredMeals();
   const dates = getLastSevenDateKeys();
 
   let totalDeficit = 0;
+  let loggedDays = 0;
 
   dates.forEach((dateKey) => {
-    const dayCalories = meals
-      .filter((meal) => meal.date === dateKey)
-      .reduce((sum, meal) => sum + safeNumber(meal.calories), 0);
+    const mealsForDay = meals.filter((meal) => meal.date === dateKey);
+
+    if (mealsForDay.length === 0) {
+      return;
+    }
+
+    const dayCalories = mealsForDay.reduce(
+      (sum, meal) => sum + safeNumber(meal.calories),
+      0
+    );
 
     totalDeficit += tdee - dayCalories;
+    loggedDays += 1;
   });
 
-  return { deficit: totalDeficit };
+  return {
+    deficit: totalDeficit,
+    loggedDays
+  };
 }
 
 function handleHeightUnitChange(announceChange = true) {
