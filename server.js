@@ -11,6 +11,8 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const USDA_API_KEY = process.env.USDA_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,163 +21,43 @@ app.use(cors());
 app.use(express.static(__dirname));
 app.use(express.static(path.join(__dirname, "public")));
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY
-});
+const ai = GEMINI_API_KEY
+  ? new GoogleGenAI({ apiKey: GEMINI_API_KEY })
+  : null;
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024
-  },
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (!file.mimetype || !file.mimetype.startsWith("image/")) {
       return cb(new Error("Only image files are allowed."));
     }
-
     cb(null, true);
   }
 });
 
-const foods = {
-  rice: {
-    food: "Cooked white rice",
-    calories: 130,
-    protein: 2.7,
-    carbs: 28.2,
-    fat: 0.3
-  },
-  chicken: {
-    food: "Cooked chicken",
-    calories: 190,
-    protein: 27,
-    carbs: 0,
-    fat: 8
-  },
-  egg: {
-    food: "Boiled egg",
-    calories: 155,
-    protein: 13,
-    carbs: 1.1,
-    fat: 11,
-    gramsPerUnit: 50
-  },
-  fish: {
-    food: "Cooked fish",
-    calories: 140,
-    protein: 22,
-    carbs: 0,
-    fat: 5
-  },
-  dal: {
-    food: "Cooked lentils / dal",
-    calories: 116,
-    protein: 9,
-    carbs: 20,
-    fat: 0.4
-  },
-  daal: {
-    food: "Cooked lentils / dal",
-    calories: 116,
-    protein: 9,
-    carbs: 20,
-    fat: 0.4
-  },
-  lentil: {
-    food: "Cooked lentils / dal",
-    calories: 116,
-    protein: 9,
-    carbs: 20,
-    fat: 0.4
-  },
-  banana: {
-    food: "Banana",
-    calories: 89,
-    protein: 1.1,
-    carbs: 22.8,
-    fat: 0.3,
-    gramsPerUnit: 118
-  },
-  apple: {
-    food: "Apple",
-    calories: 52,
-    protein: 0.3,
-    carbs: 13.8,
-    fat: 0.2,
-    gramsPerUnit: 182
-  },
-  potato: {
-    food: "Boiled potato",
-    calories: 87,
-    protein: 1.9,
-    carbs: 20,
-    fat: 0.1
-  },
-  bread: {
-    food: "Bread",
-    calories: 265,
-    protein: 9,
-    carbs: 49,
-    fat: 3.2,
-    gramsPerUnit: 25
-  },
-  roti: {
-    food: "Roti / chapati",
-    calories: 297,
-    protein: 9.6,
-    carbs: 46,
-    fat: 7.5,
-    gramsPerUnit: 40
-  },
-  chapati: {
-    food: "Roti / chapati",
-    calories: 297,
-    protein: 9.6,
-    carbs: 46,
-    fat: 7.5,
-    gramsPerUnit: 40
-  },
-  vegetable: {
-    food: "Mixed vegetables",
-    calories: 65,
-    protein: 2.5,
-    carbs: 12,
-    fat: 1
-  },
-  vegetables: {
-    food: "Mixed vegetables",
-    calories: 65,
-    protein: 2.5,
-    carbs: 12,
-    fat: 1
-  },
-  beef: {
-    food: "Cooked beef",
-    calories: 250,
-    protein: 26,
-    carbs: 0,
-    fat: 15
-  },
-  salmon: {
-    food: "Cooked salmon",
-    calories: 208,
-    protein: 20,
-    carbs: 0,
-    fat: 13
-  }
+const localFoods = {
+  rice: { food: "Cooked white rice", calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 },
+  chicken: { food: "Cooked chicken", calories: 190, protein: 27, carbs: 0, fat: 8 },
+  egg: { food: "Boiled egg", calories: 155, protein: 13, carbs: 1.1, fat: 11, gramsPerUnit: 50 },
+  banana: { food: "Banana", calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3, gramsPerUnit: 118 },
+  apple: { food: "Apple", calories: 52, protein: 0.3, carbs: 13.8, fat: 0.2, gramsPerUnit: 182 },
+  dal: { food: "Cooked lentils / dal", calories: 116, protein: 9, carbs: 20, fat: 0.4 },
+  fish: { food: "Cooked fish", calories: 140, protein: 22, carbs: 0, fat: 5 },
+  beef: { food: "Cooked beef", calories: 250, protein: 26, carbs: 0, fat: 15 },
+  salmon: { food: "Cooked salmon", calories: 208, protein: 20, carbs: 0, fat: 13 },
+  roti: { food: "Roti / chapati", calories: 297, protein: 9.6, carbs: 46, fat: 7.5, gramsPerUnit: 40 },
+  chapati: { food: "Roti / chapati", calories: 297, protein: 9.6, carbs: 46, fat: 7.5, gramsPerUnit: 40 },
+  vegetables: { food: "Mixed vegetables", calories: 65, protein: 2.5, carbs: 12, fat: 1 },
+  vegetable: { food: "Mixed vegetables", calories: 65, protein: 2.5, carbs: 12, fat: 1 }
 };
 
 app.get("/", (req, res) => {
   const publicIndex = path.join(__dirname, "public", "index.html");
   const rootIndex = path.join(__dirname, "index.html");
 
-  if (fs.existsSync(publicIndex)) {
-    return res.sendFile(publicIndex);
-  }
-
-  if (fs.existsSync(rootIndex)) {
-    return res.sendFile(rootIndex);
-  }
+  if (fs.existsSync(publicIndex)) return res.sendFile(publicIndex);
+  if (fs.existsSync(rootIndex)) return res.sendFile(rootIndex);
 
   return res.status(500).send("index.html not found.");
 });
@@ -183,7 +65,8 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
-    message: "NutriLens AI is running"
+    usda: USDA_API_KEY ? "active" : "missing",
+    gemini: GEMINI_API_KEY ? "active" : "missing"
   });
 });
 
@@ -199,40 +82,40 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
       });
     }
 
-    const localResult = analyzeLocally(description, defaultPortion);
+    const parsedFoods = parseFoodDescription(description, defaultPortion);
 
-    if (localResult.found) {
-      return res.json(localResult.result);
+    if (parsedFoods.length > 0) {
+      const usdaResult = await analyzeWithUsda(parsedFoods);
+
+      if (usdaResult.found) {
+        return res.json(usdaResult.result);
+      }
+
+      const localResult = analyzeLocally(parsedFoods);
+
+      if (localResult.found) {
+        return res.json(localResult.result);
+      }
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return res.json({
-        food: description || "Unknown food",
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        explanation:
-          "AI is inactive and this food was not found in the local database."
-      });
+    if (ai && (imageFile || description.trim())) {
+      try {
+        const aiResult = await analyzeWithGemini(description, defaultPortion, imageFile);
+        return res.json(aiResult);
+      } catch (error) {
+        console.error("Gemini error:", error.message);
+      }
     }
 
-    try {
-      const aiResult = await analyzeWithGemini(description, defaultPortion, imageFile);
-      return res.json(aiResult);
-    } catch (error) {
-      console.error("Gemini error:", error);
-
-      return res.json({
-        food: description || "Unknown food",
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fat: 0,
-        explanation:
-          "AI was unavailable or quota-limited, and this food was not found in the local database."
-      });
-    }
+    return res.json({
+      food: description || "Unknown food",
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      explanation:
+        "Food was not found in USDA, local database, or AI fallback."
+    });
   } catch (error) {
     console.error("Analyze error:", error);
 
@@ -242,7 +125,219 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
   }
 });
 
+function parseFoodDescription(description, defaultPortion) {
+  const text = normalizeText(description);
+
+  if (!text) return [];
+
+  const knownFoods = [
+    "rice",
+    "chicken",
+    "egg",
+    "banana",
+    "apple",
+    "dal",
+    "daal",
+    "lentil",
+    "fish",
+    "beef",
+    "salmon",
+    "roti",
+    "chapati",
+    "vegetable",
+    "vegetables",
+    "potato",
+    "bread",
+    "milk",
+    "yogurt",
+    "oatmeal",
+    "pasta",
+    "noodle",
+    "beans",
+    "avocado"
+  ];
+
+  const found = [];
+
+  knownFoods.forEach((food) => {
+    const pattern = new RegExp(`\\b${escapeRegExp(food)}\\b`, "i");
+
+    if (pattern.test(text)) {
+      found.push({
+        name: food,
+        grams: detectAmountForFood(text, food, defaultPortion)
+      });
+    }
+  });
+
+  if (found.length > 0) return found;
+
+  return text
+    .split(/\s*,\s*|\s+and\s+|\s+\+\s+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => ({
+      name: item.replace(/\d+(?:\.\d+)?\s*(g|gram|grams|oz|lb|cup|cups)/gi, "").trim(),
+      grams: detectAmountForFood(text, item, defaultPortion)
+    }))
+    .filter((item) => item.name);
+}
+
+async function analyzeWithUsda(parsedFoods) {
+  if (!USDA_API_KEY) {
+    return { found: false, result: null };
+  }
+
+  const total = {
+    foods: [],
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  };
+
+  let matchedCount = 0;
+
+  for (const item of parsedFoods) {
+    const usdaFood = await searchUsdaFood(item.name);
+
+    if (!usdaFood) continue;
+
+    const nutrients = extractUsdaNutrients(usdaFood);
+    const multiplier = item.grams / 100;
+
+    total.foods.push(`${usdaFood.description} (${item.grams}g)`);
+    total.calories += nutrients.calories * multiplier;
+    total.protein += nutrients.protein * multiplier;
+    total.carbs += nutrients.carbs * multiplier;
+    total.fat += nutrients.fat * multiplier;
+
+    matchedCount += 1;
+  }
+
+  if (matchedCount === 0) {
+    return { found: false, result: null };
+  }
+
+  return {
+    found: true,
+    result: {
+      food: total.foods.join(" + "),
+      calories: cleanNumber(total.calories),
+      protein: cleanNumber(total.protein),
+      carbs: cleanNumber(total.carbs),
+      fat: cleanNumber(total.fat),
+      explanation:
+        "Estimated using USDA FoodData Central. Values are approximate and depend on food match, preparation method, and portion size."
+    }
+  };
+}
+
+async function searchUsdaFood(query) {
+  try {
+    const url = new URL("https://api.nal.usda.gov/fdc/v1/foods/search");
+
+    url.searchParams.set("api_key", USDA_API_KEY);
+    url.searchParams.set("query", query);
+    url.searchParams.set("pageSize", "5");
+    url.searchParams.set("dataType", "Foundation,SR Legacy,Survey (FNDDS)");
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      console.error("USDA response error:", response.status);
+      return null;
+    }
+
+    const data = await response.json();
+
+    if (!data.foods || data.foods.length === 0) {
+      return null;
+    }
+
+    return data.foods[0];
+  } catch (error) {
+    console.error("USDA fetch error:", error.message);
+    return null;
+  }
+}
+
+function extractUsdaNutrients(food) {
+  const nutrients = {
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  };
+
+  if (!food.foodNutrients) return nutrients;
+
+  food.foodNutrients.forEach((nutrient) => {
+    const name = String(nutrient.nutrientName || "").toLowerCase();
+    const value = Number(nutrient.value || 0);
+
+    if (name.includes("energy")) nutrients.calories = value;
+    if (name.includes("protein")) nutrients.protein = value;
+    if (name.includes("carbohydrate")) nutrients.carbs = value;
+    if (name.includes("total lipid") || name === "fat") nutrients.fat = value;
+  });
+
+  return nutrients;
+}
+
+function analyzeLocally(parsedFoods) {
+  const total = {
+    foods: [],
+    calories: 0,
+    protein: 0,
+    carbs: 0,
+    fat: 0
+  };
+
+  let matchedCount = 0;
+
+  parsedFoods.forEach((item) => {
+    const key = Object.keys(localFoods).find((foodKey) =>
+      item.name.toLowerCase().includes(foodKey)
+    );
+
+    if (!key) return;
+
+    const food = localFoods[key];
+    const multiplier = item.grams / 100;
+
+    total.foods.push(`${food.food} (${item.grams}g)`);
+    total.calories += food.calories * multiplier;
+    total.protein += food.protein * multiplier;
+    total.carbs += food.carbs * multiplier;
+    total.fat += food.fat * multiplier;
+
+    matchedCount += 1;
+  });
+
+  if (matchedCount === 0) {
+    return { found: false, result: null };
+  }
+
+  return {
+    found: true,
+    result: {
+      food: total.foods.join(" + "),
+      calories: cleanNumber(total.calories),
+      protein: cleanNumber(total.protein),
+      carbs: cleanNumber(total.carbs),
+      fat: cleanNumber(total.fat),
+      explanation:
+        "Estimated using the built-in local nutrition database. USDA match was unavailable."
+    }
+  };
+}
+
 async function analyzeWithGemini(description, portion, imageFile) {
+  if (!ai) {
+    throw new Error("Gemini API key missing.");
+  }
+
   const parts = [];
 
   if (imageFile) {
@@ -259,7 +354,7 @@ async function analyzeWithGemini(description, portion, imageFile) {
 Analyze this meal.
 
 Description: ${description || "No description"}
-Portion: ${portion} grams
+Default portion: ${portion} grams
 
 Return only JSON:
 {
@@ -290,110 +385,59 @@ Return only JSON:
     protein: cleanNumber(parsed.protein),
     carbs: cleanNumber(parsed.carbs),
     fat: cleanNumber(parsed.fat),
-    explanation: parsed.explanation || "Estimated using AI."
+    explanation: parsed.explanation || "Estimated using Gemini AI."
   };
 }
 
-function analyzeLocally(description, defaultPortion) {
-  const text = normalizeText(description);
-  const matches = findFoodMatches(text);
+function detectAmountForFood(text, foodName, defaultPortion) {
+  const escapedFood = escapeRegExp(foodName);
 
-  if (matches.length === 0) {
-    return {
-      found: false,
-      result: null
-    };
-  }
-
-  const total = {
-    foods: [],
-    calories: 0,
-    protein: 0,
-    carbs: 0,
-    fat: 0
-  };
-
-  matches.forEach((match) => {
-    const item = foods[match.key];
-    const amountInGrams = detectAmountForFood(text, match.key, item, defaultPortion);
-    const multiplier = amountInGrams / 100;
-
-    total.foods.push(`${item.food} (${amountInGrams}g)`);
-    total.calories += item.calories * multiplier;
-    total.protein += item.protein * multiplier;
-    total.carbs += item.carbs * multiplier;
-    total.fat += item.fat * multiplier;
-  });
-
-  return {
-    found: true,
-    result: {
-      food: total.foods.join(" + "),
-      calories: cleanNumber(total.calories),
-      protein: cleanNumber(total.protein),
-      carbs: cleanNumber(total.carbs),
-      fat: cleanNumber(total.fat),
-      explanation:
-        "Estimated using the built-in local nutrition database with item-specific portion parsing. AI was not needed."
-    }
-  };
-}
-
-function findFoodMatches(text) {
-  const matches = [];
-
-  Object.keys(foods).forEach((key) => {
-    const pattern = new RegExp(`\\b${escapeRegExp(key)}\\b`, "i");
-
-    if (pattern.test(text)) {
-      const index = text.search(pattern);
-
-      matches.push({
-        key,
-        index
-      });
-    }
-  });
-
-  return matches.sort((a, b) => a.index - b.index);
-}
-
-function detectAmountForFood(text, foodKey, item, defaultPortion) {
-  const escapedFood = escapeRegExp(foodKey);
-
-  const patterns = [
+  const gramPatterns = [
     new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*g\\b`, "i"),
-    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*gram\\b`, "i"),
-    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*grams\\b`, "i"),
+    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*grams?\\b`, "i"),
     new RegExp(`(\\d+(?:\\.\\d+)?)\\s*g\\s*\\b${escapedFood}\\b`, "i"),
-    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*gram\\s*\\b${escapedFood}\\b`, "i"),
-    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*grams\\s*\\b${escapedFood}\\b`, "i")
+    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*grams?\\s*\\b${escapedFood}\\b`, "i")
   ];
 
-  for (const pattern of patterns) {
+  for (const pattern of gramPatterns) {
     const match = text.match(pattern);
-
-    if (match) {
-      return cleanNumber(match[1]);
-    }
+    if (match) return cleanNumber(match[1]);
   }
 
-  const unitPatterns = [
-    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\b`, "i"),
-    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*\\b${escapedFood}\\b`, "i")
+  const ozPatterns = [
+    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*oz\\b`, "i"),
+    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*oz\\s*\\b${escapedFood}\\b`, "i")
   ];
 
-  if (item.gramsPerUnit) {
-    for (const pattern of unitPatterns) {
-      const match = text.match(pattern);
+  for (const pattern of ozPatterns) {
+    const match = text.match(pattern);
+    if (match) return cleanNumber(Number(match[1]) * 28.3495);
+  }
 
-      if (match) {
-        return cleanNumber(Number(match[1]) * item.gramsPerUnit);
-      }
+  const cupPatterns = [
+    new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\s*cups?\\b`, "i"),
+    new RegExp(`(\\d+(?:\\.\\d+)?)\\s*cups?\\s*\\b${escapedFood}\\b`, "i")
+  ];
+
+  for (const pattern of cupPatterns) {
+    const match = text.match(pattern);
+    if (match) return cleanNumber(Number(match[1]) * 158);
+  }
+
+  const unitPattern = new RegExp(`\\b${escapedFood}\\s*(\\d+(?:\\.\\d+)?)\\b`, "i");
+  const unitMatch = text.match(unitPattern);
+
+  if (unitMatch) {
+    const units = Number(unitMatch[1]);
+
+    const localMatch = localFoods[foodName];
+
+    if (localMatch?.gramsPerUnit) {
+      return cleanNumber(units * localMatch.gramsPerUnit);
     }
   }
 
-  return defaultPortion || 100;
+  return cleanNumber(defaultPortion || 100);
 }
 
 function normalizeText(value) {
@@ -413,12 +457,18 @@ function escapeRegExp(value) {
 function cleanNumber(value) {
   const number = Number(value);
 
-  if (!Number.isFinite(number)) {
-    return 0;
-  }
+  if (!Number.isFinite(number)) return 0;
 
   return Math.round(number * 10) / 10;
 }
+
+app.use((err, req, res, next) => {
+  console.error("Server error:", err.message);
+
+  res.status(400).json({
+    error: err.message || "Request failed."
+  });
+});
 
 app.use((req, res) => {
   res.status(404).json({
