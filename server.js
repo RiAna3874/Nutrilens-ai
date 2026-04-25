@@ -110,10 +110,18 @@ app.post("/analyze", upload.single("image"), async (req, res) => {
     }
 
     if (!GEMINI_API_KEY) {
-      return res.status(500).json({
-        error: "GEMINI_API_KEY is missing."
-      });
-    }
+  const fallback = estimateFoodLocally(description, portion);
+
+  return res.json({
+    food: fallback.food,
+    items: fallback.items,
+    calories: fallback.calories,
+    protein: fallback.protein,
+    carbs: fallback.carbs,
+    fat: fallback.fat,
+    explanation: "Estimated using built-in fallback database because AI key is missing."
+  });
+}
 
     const prompt = `
 You are a clinical nutrition expert.
@@ -314,6 +322,57 @@ app.use((err, req, res, next) => {
     error: err.message || "Request failed."
   });
 });
+function estimateFoodLocally(description, portion = 100) {
+  const db = {
+    rice: { calories: 130, protein: 2.7, carbs: 28.2, fat: 0.3 },
+    chicken: { calories: 190, protein: 27, carbs: 0, fat: 8 },
+    egg: { calories: 155, protein: 13, carbs: 1.1, fat: 11 },
+    banana: { calories: 89, protein: 1.1, carbs: 22.8, fat: 0.3 },
+    noodle: { calories: 138, protein: 4.5, carbs: 25, fat: 2.1 },
+    noodles: { calories: 138, protein: 4.5, carbs: 25, fat: 2.1 },
+    dal: { calories: 116, protein: 9, carbs: 20, fat: 0.4 },
+    fish: { calories: 140, protein: 22, carbs: 0, fat: 5 }
+  };
+
+  const text = String(description || "").toLowerCase();
+  const items = [];
+
+  Object.keys(db).forEach((name) => {
+    if (text.includes(name)) {
+      const food = db[name];
+      const multiplier = Number(portion || 100) / 100;
+
+      items.push({
+        name,
+        amount: `${portion}g`,
+        calories: cleanNumber(food.calories * multiplier),
+        protein: cleanNumber(food.protein * multiplier),
+        carbs: cleanNumber(food.carbs * multiplier),
+        fat: cleanNumber(food.fat * multiplier)
+      });
+    }
+  });
+
+  const totals = items.reduce(
+    (sum, item) => {
+      sum.calories += item.calories;
+      sum.protein += item.protein;
+      sum.carbs += item.carbs;
+      sum.fat += item.fat;
+      return sum;
+    },
+    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+  );
+
+  return {
+    food: items.length ? items.map((i) => i.name).join(" + ") : description,
+    items,
+    calories: cleanNumber(totals.calories),
+    protein: cleanNumber(totals.protein),
+    carbs: cleanNumber(totals.carbs),
+    fat: cleanNumber(totals.fat)
+  };
+}
 
 app.use((req, res) => {
   res.status(404).json({
