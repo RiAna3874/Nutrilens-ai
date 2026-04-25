@@ -6,7 +6,6 @@
 
   <title>NutriLens AI</title>
 
-  <!-- PWA META -->
   <link rel="manifest" href="/manifest.json" />
   <meta name="theme-color" content="#f8bd72" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -15,99 +14,688 @@
   <link rel="apple-touch-icon" href="/icon-192.png" />
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
-      font-family: Arial;
+      font-family: Arial, Helvetica, sans-serif;
       background: #f7f8fb;
+      color: #1d2b3a;
     }
 
     .app {
       max-width: 480px;
-      margin: auto;
+      margin: 0 auto;
+      background: #ffffff;
+      min-height: 100vh;
     }
 
-    .top {
-      background: linear-gradient(#ffc97d, #f8bd72);
-      padding: 20px;
+    .top-dashboard {
+      background: linear-gradient(180deg, #ffc97d, #f8bd72);
+      padding: 28px 22px 34px;
       color: white;
-      text-align: center;
+      border-bottom-left-radius: 34px;
+      border-bottom-right-radius: 34px;
     }
 
-    .circle {
-      font-size: 28px;
-      font-weight: bold;
+    .circle-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .summary-side {
+      text-align: center;
+      flex: 1;
+    }
+
+    .summary-side strong {
+      display: block;
+      font-size: 2rem;
+      color: white;
+    }
+
+    .summary-side span {
+      display: block;
+      font-weight: 700;
+      color: rgba(70, 52, 38, 0.7);
+    }
+
+    .calorie-circle {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 12px solid rgba(255, 255, 255, 0.45);
+      border-top-color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: white;
+    }
+
+    .calorie-circle strong {
+      font-size: 2rem;
+      display: block;
+    }
+
+    .calorie-circle span {
+      color: rgba(70, 52, 38, 0.75);
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+
+    .macro-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 24px;
+      text-align: center;
+      color: rgba(70, 52, 38, 0.8);
+      font-weight: 700;
+    }
+
+    .macro-bar {
+      height: 7px;
+      background: rgba(255, 255, 255, 0.55);
+      border-radius: 999px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .macro-fill {
+      height: 100%;
+      width: 25%;
+      background: white;
+      border-radius: 999px;
     }
 
     .content {
-      padding: 20px;
+      padding: 22px;
     }
 
     .date-row {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      justify-content: space-between;
+      margin-bottom: 24px;
     }
 
     .date-pill {
-      background: #eee;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-weight: bold;
+      flex: 1;
+      margin: 0 12px;
+      background: #f4f6fb;
+      border-radius: 28px;
+      text-align: center;
+      padding: 16px;
+      font-size: 1.35rem;
+      font-weight: 800;
     }
 
-    button {
-      padding: 10px;
+    .arrow-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
       border: none;
-      border-radius: 10px;
+      background: #f4f6fb;
+      color: #333;
+      font-size: 1.8rem;
       cursor: pointer;
     }
 
-    .primary {
-      background: #18a98b;
+    .meal-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 18px;
+      margin-bottom: 18px;
+      border: 1px solid #edf0f6;
+      box-shadow: 0 8px 28px rgba(31, 41, 55, 0.08);
+    }
+
+    .meal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .meal-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .meal-icon {
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      background: #fff3df;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+    }
+
+    .meal-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .meal-subtitle {
+      margin: 2px 0 0;
+      color: #94a0b8;
+      font-weight: 700;
+    }
+
+    .add-btn {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: none;
+      background: #18293b;
       color: white;
+      font-size: 2rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .insight-btn {
       width: 100%;
+      margin-top: 18px;
+      padding: 16px;
+      border: none;
+      border-radius: 20px;
+      background: #e5f8ff;
+      color: #18293b;
+      font-size: 1.05rem;
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .section {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 20px;
+      margin: 22px 0;
+      box-shadow: 0 8px 28px rgba(31, 41, 55, 0.08);
+      border: 1px solid #edf0f6;
+    }
+
+    .section h2 {
+      margin-top: 0;
+      font-size: 1.4rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      padding: 13px;
+      border-radius: 14px;
+      border: 1px solid #dde3ee;
+      font-size: 1rem;
+      margin-bottom: 14px;
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    button.primary,
+    button.secondary,
+    button.danger-button {
+      width: 100%;
+      border: none;
+      border-radius: 18px;
+      padding: 15px;
+      color: white;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+
+    button.primary {
+      background: #18a98b;
+    }
+
+    button.secondary {
+      background: #18293b;
+      margin-top: 10px;
+    }
+
+    button.danger-button {
+      background: #a51f1f;
+      margin-top: 16px;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .calculator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .two-input-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .result-box {
+      background: #f6f8fc;
+      border-radius: 18px;
+      padding: 14px;
+      margin-top: 14px;
+      color: #243447;
+    }
+
+    .daily-hidden-ids {
+      display: none;
+    }
+
+    .meal-log {
+      margin-top: 18px;
+    }
+
+    .meal-section {
+      margin-top: 18px;
+    }
+
+    .meal-section h3 {
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+    }
+
+    .meal-item {
+      background: #f6f8fc;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 10px;
+      color: #243447;
+      line-height: 1.5;
+    }
+
+    .new-item {
+      animation: fadeHighlight 1.1s ease;
+    }
+
+    @keyframes fadeHighlight {
+      0% {
+        background: #4caf50;
+        color: white;
+      }
+      100% {
+        background: #f6f8fc;
+        color: #243447;
+      }
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-results {
+      position: absolute;
+      top: 58px;
+      left: 0;
+      right: 0;
+      background: #ffffff;
+      border: 1px solid #dde3ee;
+      border-radius: 16px;
+      box-shadow: 0 12px 28px rgba(31, 41, 55, 0.18);
+      max-height: 280px;
+      overflow-y: auto;
+      z-index: 999;
+    }
+
+    .search-result-item {
+      padding: 14px;
+      border-bottom: 1px solid #eef2f7;
+      cursor: pointer;
+      color: #18293b;
+    }
+
+    .search-result-item:hover {
+      background: #eef7ff;
+    }
+
+    .search-result-name {
+      font-weight: 800;
+    }
+
+    .search-result-meta {
+      color: #667085;
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    .error {
+      background: #9b1c1c;
+      color: white;
+      padding: 12px;
+      border-radius: 14px;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .loading {
+      background: #fff2c7;
+      color: #4c3a10;
+      padding: 12px;
+      border-radius: 14px;
+      font-weight: 700;
+      margin-top: 12px;
+    }
+
+    .disclaimer {
+      font-size: 0.85rem;
+      color: #667085;
+      line-height: 1.5;
+      padding-bottom: 24px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .sr-only,
+    #screenReaderSummary {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+    }
+
+    @media (max-width: 480px) {
+      .calculator-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .circle-wrap {
+        gap: 4px;
+      }
+
+      .calorie-circle {
+        width: 120px;
+        height: 120px;
+      }
     }
   </style>
 </head>
 
 <body>
   <div class="app">
+    <section class="top-dashboard">
+      <div class="circle-wrap">
+        <div class="summary-side">
+          <strong id="topEaten">0</strong>
+          <span>Eaten</span>
+        </div>
 
-    <!-- HEADER -->
-    <div class="top">
-      <div class="circle" id="topCalories">0 kcal</div>
-      <div>Daily Intake</div>
-    </div>
+        <div class="calorie-circle">
+          <div>
+            <strong id="topLeft">0</strong>
+            <span>Cal Left</span>
+          </div>
+        </div>
 
-    <div class="content">
-
-      <!-- DATE -->
-      <div class="date-row">
-        <button id="prevDateButton">◀</button>
-        <div id="currentDateLabel" class="date-pill">📅 Today</div>
-        <button id="nextDateButton">▶</button>
+        <div class="summary-side">
+          <strong id="topBurned">0</strong>
+          <span>Burned</span>
+        </div>
       </div>
 
-      <!-- FOOD INPUT -->
-      <textarea id="descriptionInput" placeholder="e.g. rice 150g chicken 100g"></textarea>
-      <input id="portionInput" type="number" value="100" />
+      <div class="macro-row">
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Fat</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Protein</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Carbs</div>
+        <div><div class="macro-bar"><div class="macro-fill"></div></div>Fiber</div>
+      </div>
+    </section>
 
-      <button id="analyzeButton" class="primary">Analyze</button>
+    <main class="content" id="mainContent">
+      <div class="date-row">
+        <button id="prevDateButton" class="arrow-btn" type="button">‹</button>
+        <div id="currentDateLabel" class="date-pill">📅 Today</div>
+        <button id="nextDateButton" class="arrow-btn" type="button">›</button>
+      </div>
 
-      <h3 id="result">No data</h3>
+      <section class="meal-card">
+        <div class="meal-header">
+          <div class="meal-left">
+            <div class="meal-icon">☕</div>
+            <div>
+              <h2 class="meal-title">Breakfast</h2>
+              <p class="meal-subtitle" id="breakfastSummary">0 / 450 Cal</p>
+            </div>
+          </div>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Breakfast';document.getElementById('foodSearchInput').focus();">+</button>
+        </div>
+      </section>
 
-      <button id="addToDayButton" disabled>Add to day</button>
+      <section class="meal-card">
+        <div class="meal-header">
+          <div class="meal-left">
+            <div class="meal-icon">🙂</div>
+            <div>
+              <h2 class="meal-title">Lunch</h2>
+              <p class="meal-subtitle" id="lunchSummary">0 / 616 Cal</p>
+            </div>
+          </div>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Lunch';document.getElementById('foodSearchInput').focus();">+</button>
+        </div>
+        <button class="insight-btn" type="button">✦ Get Insights on this meal →</button>
+      </section>
 
-      <div id="mealLog"></div>
+      <section class="meal-card">
+        <div class="meal-header">
+          <div class="meal-left">
+            <div class="meal-icon">🥗</div>
+            <div>
+              <h2 class="meal-title">Dinner</h2>
+              <p class="meal-subtitle" id="dinnerSummary">0 / 450 Cal</p>
+            </div>
+          </div>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Dinner';document.getElementById('foodSearchInput').focus();">+</button>
+        </div>
+      </section>
 
-    </div>
+      <section class="meal-card">
+        <div class="meal-header">
+          <div class="meal-left">
+            <div class="meal-icon">🥝</div>
+            <div>
+              <h2 class="meal-title">Snacks</h2>
+              <p class="meal-subtitle" id="snackSummary">0 / 150 Cal</p>
+            </div>
+          </div>
+          <button class="add-btn" type="button" onclick="document.getElementById('mealTypeInput').value='Snack';document.getElementById('foodSearchInput').focus();">+</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Add / Analyze Food</h2>
+
+        <label for="mealTypeInput">Meal type</label>
+        <select id="mealTypeInput">
+          <option value="Breakfast">Breakfast</option>
+          <option value="Lunch">Lunch</option>
+          <option value="Dinner">Dinner</option>
+          <option value="Snack">Snack</option>
+        </select>
+
+        <label for="foodSearchInput">Search food database</label>
+        <div class="search-box">
+          <input
+            id="foodSearchInput"
+            type="text"
+            placeholder="Search food, e.g. rice, chicken, banana"
+            autocomplete="off"
+          />
+          <div id="foodSearchResults" class="search-results hidden"></div>
+        </div>
+
+        <label for="imageInput">Upload food image</label>
+        <input id="imageInput" type="file" accept="image/*" />
+
+        <label for="descriptionInput">Food description</label>
+        <textarea id="descriptionInput" placeholder="Example: rice 150g chicken 120g egg 2"></textarea>
+
+        <label for="portionInput">Portion size in grams</label>
+        <input id="portionInput" type="number" value="100" min="1" />
+
+        <button id="analyzeButton" class="primary" type="button">Analyze meal</button>
+
+        <div id="loadingMessage" class="loading hidden"></div>
+        <div id="errorMessage" class="error hidden"></div>
+      </section>
+
+      <section class="section">
+        <h2>Nutrition result</h2>
+
+        <p id="foodName"><strong>Food:</strong> Not analyzed yet</p>
+        <p id="calories"><strong>Calories:</strong> 0 kcal</p>
+        <p id="protein"><strong>Protein:</strong> 0 g</p>
+        <p id="carbs"><strong>Carbs:</strong> 0 g</p>
+        <p id="fat"><strong>Fat:</strong> 0 g</p>
+        <p id="explanation"><strong>Explanation:</strong> Waiting for meal analysis.</p>
+
+        <button id="addToDayButton" class="secondary" type="button" disabled>
+          Add to daily tracker
+        </button>
+      </section>
+
+      <section class="section">
+        <h2>Calorie Requirement</h2>
+
+        <div class="calculator-grid">
+          <div>
+            <label for="sexInput">Sex</label>
+            <select id="sexInput">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="ageInput">Age</label>
+            <input id="ageInput" type="number" min="10" max="120" value="35" />
+          </div>
+
+          <div>
+            <label for="heightUnitInput">Height</label>
+            <select id="heightUnitInput">
+              <option value="cm">cm</option>
+              <option value="ftin">ft / in</option>
+            </select>
+
+            <div id="heightCmGroup">
+              <input id="heightCmInput" type="number" min="100" max="250" value="170" />
+            </div>
+
+            <div id="heightFtInGroup" class="two-input-row hidden">
+              <input id="heightFeetInput" type="number" min="1" max="8" value="5" placeholder="ft" />
+              <input id="heightInchesInput" type="number" min="0" max="11" value="7" placeholder="in" />
+            </div>
+          </div>
+
+          <div>
+            <label for="weightUnitInput">Weight</label>
+            <select id="weightUnitInput">
+              <option value="kg">kg</option>
+              <option value="lb">lb</option>
+            </select>
+            <input id="weightInput" type="number" min="25" max="700" value="80" />
+          </div>
+
+          <div>
+            <label for="activityInput">Activity level</label>
+            <select id="activityInput">
+              <option value="1.2">Sedentary</option>
+              <option value="1.375">Light</option>
+              <option value="1.55">Moderate</option>
+              <option value="1.725">Very active</option>
+              <option value="1.9">Extra active</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="goalInput">Goal</label>
+            <select id="goalInput">
+              <option value="maintain">Maintain</option>
+              <option value="mildLoss">Mild loss</option>
+              <option value="loss">Weight loss</option>
+              <option value="gain">Weight gain</option>
+            </select>
+          </div>
+        </div>
+
+        <button id="calculateRequirementButton" class="primary" type="button">
+          Calculate requirement
+        </button>
+
+        <div class="result-box">
+          <p id="bmrResult"><strong>BMR:</strong> Not calculated yet</p>
+          <p id="tdeeResult"><strong>Estimated TDEE:</strong> Not calculated yet</p>
+          <p id="targetResult"><strong>Suggested target:</strong> Not calculated yet</p>
+          <p id="remainingResult"><strong>Today remaining:</strong> Not calculated yet</p>
+          <p id="requirementExplanation"><strong>Explanation:</strong> Enter your details and calculate your daily calorie target.</p>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Daily Calorie Tracker</h2>
+
+        <div id="mealLog" class="meal-log">
+          <p>No meals added yet.</p>
+        </div>
+
+        <button id="clearDayButton" type="button" class="danger-button">
+          Clear selected day
+        </button>
+      </section>
+
+      <div class="daily-hidden-ids">
+        <p id="dailyCalories">0 kcal</p>
+        <p id="dailyProtein">0 g</p>
+        <p id="dailyCarbs">0 g</p>
+        <p id="dailyFat">0 g</p>
+      </div>
+
+      <footer class="disclaimer">
+        ⚠️ Nutrition and calorie requirement estimates are approximate and provided for general informational purposes only.
+        This tool is not a substitute for professional medical advice, diagnosis, or treatment.
+      </footer>
+
+      <p class="sr-only" id="screenReaderSummary" aria-live="polite"></p>
+    </main>
   </div>
 
-  <!-- MAIN SCRIPT -->
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=15"></script>
 
-  <!-- SERVICE WORKER -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
@@ -115,6 +703,5 @@
       });
     }
   </script>
-
 </body>
 </html>
