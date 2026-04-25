@@ -139,9 +139,10 @@ function updateDateLabel() {
 
   const selectedKey = getSelectedDateKey();
   const todayKey = getTodayDateKey();
+  const dayNumber = selectedDate.getDate();
 
   if (selectedKey === todayKey) {
-    currentDateLabel.textContent = "📅 Today";
+    currentDateLabel.textContent = `${dayNumber} Today`;
     return;
   }
 
@@ -150,15 +151,14 @@ function updateDateLabel() {
   const yesterdayKey = yesterday.toISOString().slice(0, 10);
 
   if (selectedKey === yesterdayKey) {
-    currentDateLabel.textContent = "📅 Yesterday";
+    currentDateLabel.textContent = `${dayNumber} Yesterday`;
     return;
   }
 
   currentDateLabel.textContent =
-    "📅 " +
+    `${dayNumber} ` +
     selectedDate.toLocaleDateString(undefined, {
       month: "short",
-      day: "numeric",
       year: "numeric"
     });
 }
