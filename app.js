@@ -36,6 +36,10 @@ const lunchSummary = $("lunchSummary");
 const dinnerSummary = $("dinnerSummary");
 const snackSummary = $("snackSummary");
 
+const prevDateButton = $("prevDateButton");
+const nextDateButton = $("nextDateButton");
+const currentDateLabel = $("currentDateLabel");
+
 const sexInput = $("sexInput");
 const ageInput = $("ageInput");
 const heightUnitInput = $("heightUnitInput");
@@ -61,11 +65,24 @@ let latestCalorieTarget = null;
 let latestAddedMealId = null;
 let selectedSearchFood = null;
 let searchTimer = null;
+let selectedDate = new Date();
 
 if (analyzeButton) analyzeButton.addEventListener("click", analyzeMeal);
 if (addToDayButton) addToDayButton.addEventListener("click", addLatestMealToDay);
 if (clearDayButton) clearDayButton.addEventListener("click", clearDailyTracker);
 if (foodSearchInput) foodSearchInput.addEventListener("input", handleFoodSearchInput);
+
+if (prevDateButton) {
+  prevDateButton.addEventListener("click", function () {
+    changeSelectedDate(-1);
+  });
+}
+
+if (nextDateButton) {
+  nextDateButton.addEventListener("click", function () {
+    changeSelectedDate(1);
+  });
+}
 
 if (calculateRequirementButton) {
   calculateRequirementButton.addEventListener("click", function () {
@@ -87,10 +104,7 @@ if (descriptionInput) {
 document.addEventListener("click", function (event) {
   if (!foodSearchResults || !foodSearchInput) return;
 
-  if (
-    !foodSearchResults.contains(event.target) &&
-    event.target !== foodSearchInput
-  ) {
+  if (!foodSearchResults.contains(event.target) && event.target !== foodSearchInput) {
     hideFoodSearchResults();
   }
 });
@@ -99,8 +113,55 @@ loadRequirementInputs();
 handleHeightUnitChange(false);
 handleWeightUnitChange(false);
 calculateCalorieRequirement(false);
+updateDateLabel();
 renderDailyTracker(getStoredMeals());
 updateTopDashboard();
+
+function changeSelectedDate(days) {
+  selectedDate.setDate(selectedDate.getDate() + days);
+  latestAddedMealId = null;
+  updateDateLabel();
+  renderDailyTracker(getStoredMeals());
+  updateRemainingCalories();
+  updateTopDashboard();
+}
+
+function getSelectedDateKey() {
+  return selectedDate.toISOString().slice(0, 10);
+}
+
+function getTodayDateKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function updateDateLabel() {
+  if (!currentDateLabel) return;
+
+  const selectedKey = getSelectedDateKey();
+  const todayKey = getTodayDateKey();
+
+  if (selectedKey === todayKey) {
+    currentDateLabel.textContent = "📅 Today";
+    return;
+  }
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayKey = yesterday.toISOString().slice(0, 10);
+
+  if (selectedKey === yesterdayKey) {
+    currentDateLabel.textContent = "📅 Yesterday";
+    return;
+  }
+
+  currentDateLabel.textContent =
+    "📅 " +
+    selectedDate.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+}
 
 async function handleFoodSearchInput() {
   selectedSearchFood = null;
@@ -116,11 +177,7 @@ async function handleFoodSearchInput() {
 
   searchTimer = setTimeout(async () => {
     try {
-      foodSearchResults.innerHTML = `
-        <div class="search-result-item">
-          Searching...
-        </div>
-      `;
+      foodSearchResults.innerHTML = `<div class="search-result-item">Searching...</div>`;
       foodSearchResults.classList.remove("hidden");
 
       const response = await fetch(`/api/search-food?q=${encodeURIComponent(query)}`);
@@ -131,12 +188,7 @@ async function handleFoodSearchInput() {
       }
 
       if (!Array.isArray(foods) || foods.length === 0) {
-        foodSearchResults.innerHTML = `
-          <div class="search-result-item">
-            No foods found.
-          </div>
-        `;
-        foodSearchResults.classList.remove("hidden");
+        foodSearchResults.innerHTML = `<div class="search-result-item">No foods found.</div>`;
         return;
       }
 
@@ -156,8 +208,6 @@ async function handleFoodSearchInput() {
           `
         )
         .join("");
-
-      foodSearchResults.classList.remove("hidden");
 
       document.querySelectorAll(".search-result-item").forEach((item) => {
         item.addEventListener("click", () => {
@@ -183,11 +233,7 @@ async function handleFoodSearchInput() {
       });
     } catch (error) {
       console.error("Food search error:", error);
-      foodSearchResults.innerHTML = `
-        <div class="search-result-item">
-          Search failed. Check USDA_API_KEY.
-        </div>
-      `;
+      foodSearchResults.innerHTML = `<div class="search-result-item">Search failed. Check USDA_API_KEY.</div>`;
       foodSearchResults.classList.remove("hidden");
     }
   }, 350);
@@ -213,7 +259,7 @@ function calculateSelectedFoodNutrition(food) {
     fat: cleanNumber(food.fat * multiplier),
     explanation: "Estimated from selected USDA FoodData Central search result.",
     timestamp: new Date().toISOString(),
-    date: getTodayDateKey()
+    date: getSelectedDateKey()
   };
 }
 
@@ -251,9 +297,7 @@ async function analyzeMeal() {
 
   const formData = new FormData();
 
-  if (imageFile) {
-    formData.append("image", imageFile);
-  }
+  if (imageFile) formData.append("image", imageFile);
 
   formData.append("description", description);
   formData.append("portion", portion);
@@ -271,9 +315,7 @@ async function analyzeMeal() {
 
     const responseText = await response.text();
 
-    if (!responseText) {
-      throw new Error("Backend returned an empty response.");
-    }
+    if (!responseText) throw new Error("Backend returned an empty response.");
 
     let data;
 
@@ -283,9 +325,7 @@ async function analyzeMeal() {
       throw new Error("Backend did not return valid JSON.");
     }
 
-    if (!response.ok) {
-      throw new Error(data.error || "Meal analysis failed.");
-    }
+    if (!response.ok) throw new Error(data.error || "Meal analysis failed.");
 
     latestAnalysis = {
       id: createId(),
@@ -297,7 +337,7 @@ async function analyzeMeal() {
       fat: safeNumber(data.fat),
       explanation: safeText(data.explanation, "Nutrition estimated from available information."),
       timestamp: new Date().toISOString(),
-      date: getTodayDateKey()
+      date: getSelectedDateKey()
     };
 
     updateResults(latestAnalysis);
@@ -332,7 +372,7 @@ function addLatestMealToDay() {
     ...latestAnalysis,
     id: createId(),
     mealType: mealTypeInput?.value || latestAnalysis.mealType || "Snack",
-    date: getTodayDateKey(),
+    date: getSelectedDateKey(),
     timestamp: new Date().toISOString()
   };
 
@@ -381,8 +421,8 @@ function clearDailyTracker() {
   clearDayButton.textContent = "Clearing...";
 
   const meals = getStoredMeals();
-  const today = getTodayDateKey();
-  const remainingMeals = meals.filter((meal) => meal.date !== today);
+  const selectedKey = getSelectedDateKey();
+  const remainingMeals = meals.filter((meal) => meal.date !== selectedKey);
 
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(remainingMeals));
 
@@ -395,11 +435,11 @@ function clearDailyTracker() {
   }, 250);
 
   setTimeout(() => {
-    clearDayButton.textContent = originalText || "Clear daily tracker";
+    clearDayButton.textContent = originalText || "Clear selected day";
     clearDayButton.disabled = false;
   }, 1200);
 
-  announce("Today’s tracker cleared.");
+  announce("Selected day tracker cleared.");
 }
 
 function getStoredMeals() {
@@ -416,13 +456,13 @@ function getStoredMeals() {
   }
 }
 
-function getTodayMeals() {
-  const today = getTodayDateKey();
-  return getStoredMeals().filter((meal) => meal.date === today);
+function getSelectedDayMeals() {
+  const selectedKey = getSelectedDateKey();
+  return getStoredMeals().filter((meal) => meal.date === selectedKey);
 }
 
 function getDailyTotals() {
-  return getTodayMeals().reduce(
+  return getSelectedDayMeals().reduce(
     (sum, meal) => {
       sum.calories += safeNumber(meal.calories);
       sum.protein += safeNumber(meal.protein);
@@ -435,15 +475,15 @@ function getDailyTotals() {
 }
 
 function renderDailyTracker(meals) {
-  const today = getTodayDateKey();
-  const todayMeals = meals.filter((meal) => meal.date === today);
+  const selectedKey = getSelectedDateKey();
+  const selectedMeals = meals.filter((meal) => meal.date === selectedKey);
 
-  updateMealSummaries(todayMeals);
+  updateMealSummaries(selectedMeals);
 
   if (!mealLog) return;
 
-  if (todayMeals.length === 0) {
-    mealLog.innerHTML = buildDeficitSummaryHtml() + "<p>No meals added today.</p>";
+  if (selectedMeals.length === 0) {
+    mealLog.innerHTML = buildDeficitSummaryHtml() + "<p>No meals added for this day.</p>";
     return;
   }
 
@@ -454,7 +494,7 @@ function renderDailyTracker(meals) {
     Snack: []
   };
 
-  todayMeals.forEach((meal) => {
+  selectedMeals.forEach((meal) => {
     const type = groupedMeals[meal.mealType] ? meal.mealType : "Snack";
     groupedMeals[type].push(meal);
   });
@@ -497,11 +537,11 @@ function renderDailyTracker(meals) {
   });
 }
 
-function updateMealSummaries(todayMeals) {
+function updateMealSummaries(dayMeals) {
   const mealTargets = { Breakfast: 450, Lunch: 616, Dinner: 450, Snack: 150 };
   const totals = { Breakfast: 0, Lunch: 0, Dinner: 0, Snack: 0 };
 
-  todayMeals.forEach((meal) => {
+  dayMeals.forEach((meal) => {
     const type = totals[meal.mealType] !== undefined ? meal.mealType : "Snack";
     totals[type] += safeNumber(meal.calories);
   });
@@ -565,18 +605,18 @@ function buildDeficitSummaryHtml() {
 
   const deficitText =
     deficitVsTdee >= 0
-      ? `${deficitVsTdee} kcal deficit today vs estimated TDEE`
-      : `${Math.abs(deficitVsTdee)} kcal surplus today vs estimated TDEE`;
+      ? `${deficitVsTdee} kcal deficit for selected day vs estimated TDEE`
+      : `${Math.abs(deficitVsTdee)} kcal surplus for selected day vs estimated TDEE`;
 
   return `
     <div class="meal-item">
-      <strong>Today calorie balance:</strong><br />
+      <strong>Selected day calorie balance:</strong><br />
       ${remainingText}<br />
       ${deficitText}
     </div>
 
     <div class="meal-item">
-      <strong>Last 7 logged days:</strong><br />
+      <strong>Last 7 logged days from selected date:</strong><br />
       Logged days counted: ${loggedDays}<br />
       Total calorie deficit from logged days only: ${cleanWholeNumber(lastWeek.deficit)} kcal<br />
       Expected weight change: ${cleanNumber(expectedLossLb)} lb (${cleanNumber(expectedLossKg)} kg)
@@ -593,7 +633,7 @@ function calculateLastSevenDayDeficit() {
   }
 
   const meals = getStoredMeals();
-  const dates = getLastSevenDateKeys();
+  const dates = getLastSevenDateKeysFromSelectedDate();
 
   let totalDeficit = 0;
   let loggedDays = 0;
@@ -612,6 +652,19 @@ function calculateLastSevenDayDeficit() {
   });
 
   return { deficit: totalDeficit, loggedDays };
+}
+
+function getLastSevenDateKeysFromSelectedDate() {
+  const dates = [];
+  const baseDate = new Date(selectedDate);
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(baseDate);
+    date.setDate(baseDate.getDate() - i);
+    dates.push(date.toISOString().slice(0, 10));
+  }
+
+  return dates;
 }
 
 function handleHeightUnitChange(announceChange = true) {
@@ -834,10 +887,6 @@ function loadRequirementInputs() {
   }
 }
 
-function getTodayDateKey() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function getDateKeyFromTimestamp(timestamp) {
   if (!timestamp) return null;
 
@@ -845,19 +894,6 @@ function getDateKeyFromTimestamp(timestamp) {
   if (Number.isNaN(date.getTime())) return null;
 
   return date.toISOString().slice(0, 10);
-}
-
-function getLastSevenDateKeys() {
-  const dates = [];
-  const today = new Date();
-
-  for (let i = 0; i < 7; i++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() - i);
-    dates.push(date.toISOString().slice(0, 10));
-  }
-
-  return dates;
 }
 
 function showError(message) {

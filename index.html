@@ -3,13 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
   <title>NutriLens AI</title>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -106,9 +103,7 @@
       border-radius: 999px;
     }
 
-    .content {
-      padding: 22px;
-    }
+    .content { padding: 22px; }
 
     .date-row {
       display: flex;
@@ -230,9 +225,7 @@
       margin-bottom: 8px;
     }
 
-    input,
-    textarea,
-    select {
+    input, textarea, select {
       width: 100%;
       padding: 13px;
       border-radius: 14px;
@@ -246,12 +239,11 @@
       resize: vertical;
     }
 
-    button.primary {
+    button.primary, button.secondary, button.danger-button {
       width: 100%;
       border: none;
       border-radius: 18px;
       padding: 15px;
-      background: #18a98b;
       color: white;
       font-size: 1.05rem;
       font-weight: 800;
@@ -259,40 +251,12 @@
       margin-top: 6px;
     }
 
-    button.secondary {
-      width: 100%;
-      border: none;
-      border-radius: 18px;
-      padding: 15px;
-      background: #18293b;
-      color: white;
-      font-size: 1.05rem;
-      font-weight: 800;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+    button.primary { background: #18a98b; }
+    button.secondary { background: #18293b; margin-top: 10px; }
+    button.danger-button { background: #a51f1f; margin-top: 16px; }
 
-    button.danger-button {
-      width: 100%;
-      border: none;
-      border-radius: 18px;
-      padding: 15px;
-      background: #a51f1f;
-      color: white;
-      font-size: 1rem;
-      font-weight: 800;
-      cursor: pointer;
-      margin-top: 16px;
-    }
-
-    button:active {
-      transform: scale(0.97);
-    }
-
-    button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
+    button:active { transform: scale(0.97); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
 
     .calculator-grid {
       display: grid;
@@ -314,22 +278,10 @@
       color: #243447;
     }
 
-    .daily-hidden-ids {
-      display: none;
-    }
-
-    .meal-log {
-      margin-top: 18px;
-    }
-
-    .meal-section {
-      margin-top: 18px;
-    }
-
-    .meal-section h3 {
-      font-size: 1.2rem;
-      margin-bottom: 10px;
-    }
+    .daily-hidden-ids { display: none; }
+    .meal-log { margin-top: 18px; }
+    .meal-section { margin-top: 18px; }
+    .meal-section h3 { font-size: 1.2rem; margin-bottom: 10px; }
 
     .meal-item {
       background: #f6f8fc;
@@ -340,24 +292,14 @@
       line-height: 1.5;
     }
 
-    .new-item {
-      animation: fadeHighlight 1.1s ease;
-    }
+    .new-item { animation: fadeHighlight 1.1s ease; }
 
     @keyframes fadeHighlight {
-      0% {
-        background: #4caf50;
-        color: white;
-      }
-      100% {
-        background: #f6f8fc;
-        color: #243447;
-      }
+      0% { background: #4caf50; color: white; }
+      100% { background: #f6f8fc; color: #243447; }
     }
 
-    .search-box {
-      position: relative;
-    }
+    .search-box { position: relative; }
 
     .search-results {
       position: absolute;
@@ -380,13 +322,8 @@
       color: #18293b;
     }
 
-    .search-result-item:hover {
-      background: #eef7ff;
-    }
-
-    .search-result-name {
-      font-weight: 800;
-    }
+    .search-result-item:hover { background: #eef7ff; }
+    .search-result-name { font-weight: 800; }
 
     .search-result-meta {
       color: #667085;
@@ -419,12 +356,9 @@
       padding-bottom: 24px;
     }
 
-    .hidden {
-      display: none !important;
-    }
+    .hidden { display: none !important; }
 
-    .sr-only,
-    #screenReaderSummary {
+    .sr-only, #screenReaderSummary {
       position: absolute !important;
       width: 1px !important;
       height: 1px !important;
@@ -434,18 +368,9 @@
     }
 
     @media (max-width: 480px) {
-      .calculator-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .circle-wrap {
-        gap: 4px;
-      }
-
-      .calorie-circle {
-        width: 120px;
-        height: 120px;
-      }
+      .calculator-grid { grid-template-columns: 1fr; }
+      .circle-wrap { gap: 4px; }
+      .calorie-circle { width: 120px; height: 120px; }
     }
   </style>
 </head>
@@ -482,9 +407,9 @@
 
     <main class="content" id="mainContent">
       <div class="date-row">
-        <button class="arrow-btn" type="button">‹</button>
-        <div class="date-pill">📅 Today</div>
-        <button class="arrow-btn" type="button">›</button>
+        <button id="prevDateButton" class="arrow-btn" type="button">‹</button>
+        <div id="currentDateLabel" class="date-pill">📅 Today</div>
+        <button id="nextDateButton" class="arrow-btn" type="button">›</button>
       </div>
 
       <section class="meal-card">
@@ -678,7 +603,7 @@
         </div>
 
         <button id="clearDayButton" type="button" class="danger-button">
-          Clear daily tracker
+          Clear selected day
         </button>
       </section>
 
@@ -698,6 +623,6 @@
     </main>
   </div>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
