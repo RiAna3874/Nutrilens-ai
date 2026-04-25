@@ -26,6 +26,15 @@ const dailyCarbs = document.getElementById("dailyCarbs");
 const dailyFat = document.getElementById("dailyFat");
 const mealLog = document.getElementById("mealLog");
 
+const topEaten = document.getElementById("topEaten");
+const topLeft = document.getElementById("topLeft");
+const topBurned = document.getElementById("topBurned");
+
+const breakfastSummary = document.getElementById("breakfastSummary");
+const lunchSummary = document.getElementById("lunchSummary");
+const dinnerSummary = document.getElementById("dinnerSummary");
+const snackSummary = document.getElementById("snackSummary");
+
 const sexInput = document.getElementById("sexInput");
 const ageInput = document.getElementById("ageInput");
 
@@ -55,6 +64,7 @@ let latestCalorieTarget = null;
 analyzeButton.addEventListener("click", analyzeMeal);
 addToDayButton.addEventListener("click", addLatestMealToDay);
 clearDayButton.addEventListener("click", clearDailyTracker);
+
 calculateRequirementButton.addEventListener("click", function () {
   calculateCalorieRequirement(true);
 });
@@ -73,6 +83,7 @@ loadRequirementInputs();
 handleHeightUnitChange(false);
 handleWeightUnitChange(false);
 calculateCalorieRequirement(false);
+updateTopDashboard();
 
 async function analyzeMeal() {
   hideError();
@@ -143,7 +154,8 @@ async function analyzeMeal() {
         data.explanation,
         "Nutrition estimated from available information."
       ),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      date: getTodayDateKey()
     };
 
     updateResults(latestAnalysis);
@@ -173,13 +185,7 @@ function updateResults(data) {
     data.food +
     ". Calories: " +
     data.calories +
-    " kilocalories. Protein: " +
-    data.protein +
-    " grams. Carbohydrates: " +
-    data.carbs +
-    " grams. Fat: " +
-    data.fat +
-    " grams.";
+    " kilocalories.";
 }
 
 function addLatestMealToDay() {
@@ -192,22 +198,33 @@ function addLatestMealToDay() {
 
   meals.push({
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
-    ...latestAnalysis
+    ...latestAnalysis,
+    date: getTodayDateKey()
   });
 
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(meals));
+
   renderDailyTracker(meals);
   updateRemainingCalories();
+  updateTopDashboard();
 
   screenReaderSummary.textContent =
     latestAnalysis.mealType + " added to daily tracker.";
 }
 
 function clearDailyTracker() {
-  localStorage.removeItem("nutrilensDailyMeals");
-  renderDailyTracker([]);
+  const meals = getStoredMeals();
+  const today = getTodayDateKey();
+
+  const remainingMeals = meals.filter((meal) => meal.date !== today);
+
+  localStorage.setItem("nutrilensDailyMeals", JSON.stringify(remainingMeals));
+
+  renderDailyTracker(remainingMeals);
   updateRemainingCalories();
-  screenReaderSummary.textContent = "Daily tracker cleared.";
+  updateTopDashboard();
+
+  screenReaderSummary.textContent = "Today’s tracker cleared.";
 }
 
 function loadDailyTracker() {
@@ -218,14 +235,24 @@ function loadDailyTracker() {
 function getStoredMeals() {
   try {
     const raw = localStorage.getItem("nutrilensDailyMeals");
-    return raw ? JSON.parse(raw) : [];
+    const meals = raw ? JSON.parse(raw) : [];
+
+    return meals.map((meal) => ({
+      ...meal,
+      date: meal.date || getDateKeyFromTimestamp(meal.timestamp) || getTodayDateKey()
+    }));
   } catch (error) {
     return [];
   }
 }
 
+function getTodayMeals() {
+  const today = getTodayDateKey();
+  return getStoredMeals().filter((meal) => meal.date === today);
+}
+
 function getDailyTotals() {
-  const meals = getStoredMeals();
+  const meals = getTodayMeals();
 
   return meals.reduce(
     (sum, meal) => {
@@ -245,7 +272,10 @@ function getDailyTotals() {
 }
 
 function renderDailyTracker(meals) {
-  const totals = meals.reduce(
+  const today = getTodayDateKey();
+  const todayMeals = meals.filter((meal) => meal.date === today);
+
+  const totals = todayMeals.reduce(
     (sum, meal) => {
       sum.calories += safeNumber(meal.calories);
       sum.protein += safeNumber(meal.protein);
@@ -266,8 +296,10 @@ function renderDailyTracker(meals) {
   dailyCarbs.textContent = safeNumber(totals.carbs) + " g";
   dailyFat.textContent = safeNumber(totals.fat) + " g";
 
-  if (meals.length === 0) {
-    mealLog.innerHTML = "<p>No meals added yet.</p>";
+  updateMealSummaries(todayMeals);
+
+  if (todayMeals.length === 0) {
+    mealLog.innerHTML = buildDeficitSummaryHtml() + "<p>No meals added today.</p>";
     return;
   }
 
@@ -278,12 +310,12 @@ function renderDailyTracker(meals) {
     Snack: []
   };
 
-  meals.forEach((meal) => {
+  todayMeals.forEach((meal) => {
     const type = groupedMeals[meal.mealType] ? meal.mealType : "Snack";
     groupedMeals[type].push(meal);
   });
 
-  mealLog.innerHTML = "";
+  mealLog.innerHTML = buildDeficitSummaryHtml();
 
   Object.keys(groupedMeals).forEach((mealType) => {
     const group = groupedMeals[mealType];
@@ -324,6 +356,134 @@ function renderDailyTracker(meals) {
   });
 }
 
+function updateMealSummaries(todayMeals) {
+  const mealTargets = {
+    Breakfast: 450,
+    Lunch: 616,
+    Dinner: 450,
+    Snack: 150
+  };
+
+  const totals = {
+    Breakfast: 0,
+    Lunch: 0,
+    Dinner: 0,
+    Snack: 0
+  };
+
+  todayMeals.forEach((meal) => {
+    const type = totals[meal.mealType] !== undefined ? meal.mealType : "Snack";
+    totals[type] += safeNumber(meal.calories);
+  });
+
+  breakfastSummary.textContent =
+    cleanWholeNumber(totals.Breakfast) + " / " + mealTargets.Breakfast + " Cal";
+
+  lunchSummary.textContent =
+    cleanWholeNumber(totals.Lunch) + " / " + mealTargets.Lunch + " Cal";
+
+  dinnerSummary.textContent =
+    cleanWholeNumber(totals.Dinner) + " / " + mealTargets.Dinner + " Cal";
+
+  snackSummary.textContent =
+    cleanWholeNumber(totals.Snack) + " / " + mealTargets.Snack + " Cal";
+}
+
+function updateTopDashboard() {
+  const totals = getDailyTotals();
+  const eaten = cleanWholeNumber(totals.calories);
+  const burned = 0;
+
+  let target = 0;
+
+  if (latestCalorieTarget && latestCalorieTarget.target) {
+    target = latestCalorieTarget.target;
+  } else {
+    const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
+    target = Number.isFinite(savedTarget) ? savedTarget : 0;
+  }
+
+  const left = Math.max(cleanWholeNumber(target - eaten), 0);
+
+  if (topEaten) topEaten.textContent = eaten;
+  if (topLeft) topLeft.textContent = left;
+  if (topBurned) topBurned.textContent = burned;
+}
+
+function buildDeficitSummaryHtml() {
+  const totals = getDailyTotals();
+  const target = latestCalorieTarget ? latestCalorieTarget.target : Number(localStorage.getItem("nutrilensLatestTarget"));
+  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : Number(localStorage.getItem("nutrilensLatestTdee"));
+
+  if (!target || !tdee) {
+    return `
+      <div class="meal-item">
+        <strong>Calorie balance:</strong><br />
+        Calculate your calorie requirement first to see remaining calories, deficit, and expected weight loss.
+      </div>
+    `;
+  }
+
+  const remainingToTarget = cleanWholeNumber(target - totals.calories);
+  const deficitVsTdee = cleanWholeNumber(tdee - totals.calories);
+
+  const lastWeek = calculateLastSevenDayDeficit();
+  const expectedLossLb = lastWeek.deficit / 3500;
+  const expectedLossKg = lastWeek.deficit / 7700;
+
+  const remainingText =
+    remainingToTarget >= 0
+      ? `${remainingToTarget} kcal remaining to target`
+      : `${Math.abs(remainingToTarget)} kcal above target`;
+
+  const deficitText =
+    deficitVsTdee >= 0
+      ? `${deficitVsTdee} kcal deficit today vs estimated TDEE`
+      : `${Math.abs(deficitVsTdee)} kcal surplus today vs estimated TDEE`;
+
+  return `
+    <div class="meal-item">
+      <strong>Today calorie balance:</strong><br />
+      ${remainingText}<br />
+      ${deficitText}
+    </div>
+
+    <div class="meal-item">
+      <strong>Last 7 days:</strong><br />
+      Total calorie deficit: ${cleanWholeNumber(lastWeek.deficit)} kcal<br />
+      Expected weight loss: ${cleanNumber(expectedLossLb)} lb (${cleanNumber(expectedLossKg)} kg)
+    </div>
+  `;
+}
+
+function calculateLastSevenDayDeficit() {
+  const savedTdee = Number(localStorage.getItem("nutrilensLatestTdee"));
+  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : savedTdee;
+
+  if (!tdee || !Number.isFinite(tdee)) {
+    return {
+      deficit: 0
+    };
+  }
+
+  const meals = getStoredMeals();
+  const dates = getLastSevenDateKeys();
+
+  let totalDeficit = 0;
+
+  dates.forEach((dateKey) => {
+    const dayCalories = meals
+      .filter((meal) => meal.date === dateKey)
+      .reduce((sum, meal) => sum + safeNumber(meal.calories), 0);
+
+    totalDeficit += tdee - dayCalories;
+  });
+
+  return {
+    deficit: totalDeficit
+  };
+}
+
 function handleHeightUnitChange(announce = true) {
   const useFtIn = heightUnitInput.value === "ftin";
 
@@ -358,7 +518,9 @@ function handleHeightUnitChange(announce = true) {
 
   if (announce) {
     screenReaderSummary.textContent =
-      useFtIn ? "Height unit changed to feet and inches." : "Height unit changed to centimeters.";
+      useFtIn
+        ? "Height unit changed to feet and inches."
+        : "Height unit changed to centimeters.";
   }
 }
 
@@ -383,7 +545,9 @@ function handleWeightUnitChange(announce = true) {
 
   if (announce) {
     screenReaderSummary.textContent =
-      weightUnitInput.value === "lb" ? "Weight unit changed to pounds." : "Weight unit changed to kilograms.";
+      weightUnitInput.value === "lb"
+        ? "Weight unit changed to pounds."
+        : "Weight unit changed to kilograms.";
   }
 }
 
@@ -456,6 +620,9 @@ function calculateCalorieRequirement(announce = true) {
     goalText
   };
 
+  localStorage.setItem("nutrilensLatestTarget", latestCalorieTarget.target);
+  localStorage.setItem("nutrilensLatestTdee", latestCalorieTarget.tdee);
+
   saveRequirementInputs();
 
   bmrResult.innerHTML =
@@ -474,6 +641,8 @@ function calculateCalorieRequirement(announce = true) {
     "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. Height and weight are converted internally to cm and kg before calculation. TDEE is BMR multiplied by your selected activity factor.";
 
   updateRemainingCalories();
+  renderDailyTracker(getStoredMeals());
+  updateTopDashboard();
 
   if (announce) {
     screenReaderSummary.textContent =
@@ -484,24 +653,34 @@ function calculateCalorieRequirement(announce = true) {
 }
 
 function updateRemainingCalories() {
-  if (!latestCalorieTarget) {
+  const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
+  const savedTdee = Number(localStorage.getItem("nutrilensLatestTdee"));
+
+  const target = latestCalorieTarget ? latestCalorieTarget.target : savedTarget;
+  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : savedTdee;
+
+  if (!target || !tdee) {
     remainingResult.innerHTML =
       "<strong>Today remaining:</strong> Calculate requirement first.";
     return;
   }
 
   const totals = getDailyTotals();
-  const remaining = cleanWholeNumber(latestCalorieTarget.target - totals.calories);
+  const remaining = cleanWholeNumber(target - totals.calories);
+  const deficit = cleanWholeNumber(tdee - totals.calories);
 
-  if (remaining >= 0) {
-    remainingResult.innerHTML =
-      "<strong>Today remaining:</strong> " + remaining + " kcal remaining";
-  } else {
-    remainingResult.innerHTML =
-      "<strong>Today remaining:</strong> " +
-      Math.abs(remaining) +
-      " kcal above target";
-  }
+  const remainingText =
+    remaining >= 0
+      ? remaining + " kcal remaining to target"
+      : Math.abs(remaining) + " kcal above target";
+
+  const deficitText =
+    deficit >= 0
+      ? deficit + " kcal deficit vs estimated TDEE"
+      : Math.abs(deficit) + " kcal surplus vs estimated TDEE";
+
+  remainingResult.innerHTML =
+    "<strong>Today remaining:</strong> " + remainingText + " | " + deficitText;
 }
 
 function saveRequirementInputs() {
@@ -544,6 +723,36 @@ function loadRequirementInputs() {
   } catch (error) {
     return;
   }
+}
+
+function getTodayDateKey() {
+  const now = new Date();
+  return now.toISOString().slice(0, 10);
+}
+
+function getDateKeyFromTimestamp(timestamp) {
+  if (!timestamp) return null;
+
+  const date = new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toISOString().slice(0, 10);
+}
+
+function getLastSevenDateKeys() {
+  const dates = [];
+  const today = new Date();
+
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() - i);
+    dates.push(date.toISOString().slice(0, 10));
+  }
+
+  return dates;
 }
 
 function showError(message) {
@@ -594,6 +803,16 @@ function cleanWholeNumber(value) {
   }
 
   return Math.round(number);
+}
+
+function cleanNumber(value) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return 0;
+  }
+
+  return Math.round(number * 10) / 10;
 }
 
 function escapeHtml(value) {
