@@ -55,18 +55,11 @@ const requirementExplanation = $("requirementExplanation");
 
 let latestAnalysis = null;
 let latestCalorieTarget = null;
+let latestAddedMealId = null;
 
-if (analyzeButton) {
-  analyzeButton.addEventListener("click", analyzeMeal);
-}
-
-if (addToDayButton) {
-  addToDayButton.addEventListener("click", addLatestMealToDay);
-}
-
-if (clearDayButton) {
-  clearDayButton.addEventListener("click", clearDailyTracker);
-}
+if (analyzeButton) analyzeButton.addEventListener("click", analyzeMeal);
+if (addToDayButton) addToDayButton.addEventListener("click", addLatestMealToDay);
+if (clearDayButton) clearDayButton.addEventListener("click", clearDailyTracker);
 
 if (calculateRequirementButton) {
   calculateRequirementButton.addEventListener("click", function () {
@@ -74,13 +67,8 @@ if (calculateRequirementButton) {
   });
 }
 
-if (heightUnitInput) {
-  heightUnitInput.addEventListener("change", handleHeightUnitChange);
-}
-
-if (weightUnitInput) {
-  weightUnitInput.addEventListener("change", handleWeightUnitChange);
-}
+if (heightUnitInput) heightUnitInput.addEventListener("change", handleHeightUnitChange);
+if (weightUnitInput) weightUnitInput.addEventListener("change", handleWeightUnitChange);
 
 if (descriptionInput) {
   descriptionInput.addEventListener("keydown", function (event) {
@@ -170,6 +158,7 @@ async function analyzeMeal() {
 
     updateResults(latestAnalysis);
     addToDayButton.disabled = false;
+    addToDayButton.textContent = "Add to daily tracker";
   } catch (error) {
     latestAnalysis = null;
     addToDayButton.disabled = true;
@@ -189,26 +178,41 @@ function addLatestMealToDay() {
     return;
   }
 
+  const originalText = addToDayButton.textContent;
+  addToDayButton.disabled = true;
+  addToDayButton.textContent = "Adding... ⏳";
+
   const meals = getStoredMeals();
 
-  meals.push({
+  const newMeal = {
     ...latestAnalysis,
     id: createId(),
     date: getTodayDateKey(),
     timestamp: new Date().toISOString()
-  });
+  };
 
+  latestAddedMealId = newMeal.id;
+
+  meals.push(newMeal);
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(meals));
 
   renderDailyTracker(meals);
   updateRemainingCalories();
   updateTopDashboard();
 
-  addToDayButton.disabled = true;
-  descriptionInput.value = "";
+  setTimeout(() => {
+    addToDayButton.textContent = "Added ✓";
+  }, 250);
+
+  setTimeout(() => {
+    addToDayButton.textContent = originalText || "Add to daily tracker";
+    addToDayButton.disabled = true;
+  }, 1400);
+
+  if (descriptionInput) descriptionInput.value = "";
   if (imageInput) imageInput.value = "";
 
-  announce(`${latestAnalysis.food} added to ${latestAnalysis.mealType}.`);
+  announce(`${newMeal.food} added to ${newMeal.mealType}.`);
 }
 
 function updateResults(data) {
@@ -223,9 +227,12 @@ function updateResults(data) {
 }
 
 function clearDailyTracker() {
+  const originalText = clearDayButton.textContent;
+  clearDayButton.disabled = true;
+  clearDayButton.textContent = "Clearing...";
+
   const meals = getStoredMeals();
   const today = getTodayDateKey();
-
   const remainingMeals = meals.filter((meal) => meal.date !== today);
 
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(remainingMeals));
@@ -233,6 +240,15 @@ function clearDailyTracker() {
   renderDailyTracker(remainingMeals);
   updateRemainingCalories();
   updateTopDashboard();
+
+  setTimeout(() => {
+    clearDayButton.textContent = "Cleared ✓";
+  }, 250);
+
+  setTimeout(() => {
+    clearDayButton.textContent = originalText || "Clear daily tracker";
+    clearDayButton.disabled = false;
+  }, 1200);
 
   announce("Today’s tracker cleared.");
 }
@@ -315,7 +331,7 @@ function renderDailyTracker(meals) {
 
     group.forEach((meal) => {
       const item = document.createElement("div");
-      item.className = "meal-item";
+      item.className = meal.id === latestAddedMealId ? "meal-item new-item" : "meal-item";
 
       item.innerHTML =
         "<strong>" +
