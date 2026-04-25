@@ -1,107 +1,119 @@
 const BACKEND_URL = "/analyze";
 
-const imageInput = document.getElementById("imageInput");
-const descriptionInput = document.getElementById("descriptionInput");
-const portionInput = document.getElementById("portionInput");
-const mealTypeInput = document.getElementById("mealTypeInput");
+const $ = (id) => document.getElementById(id);
 
-const analyzeButton = document.getElementById("analyzeButton");
-const addToDayButton = document.getElementById("addToDayButton");
-const clearDayButton = document.getElementById("clearDayButton");
+const imageInput = $("imageInput");
+const descriptionInput = $("descriptionInput");
+const portionInput = $("portionInput");
+const mealTypeInput = $("mealTypeInput");
 
-const loadingMessage = document.getElementById("loadingMessage");
-const errorMessage = document.getElementById("errorMessage");
-const screenReaderSummary = document.getElementById("screenReaderSummary");
+const analyzeButton = $("analyzeButton");
+const addToDayButton = $("addToDayButton");
+const clearDayButton = $("clearDayButton");
 
-const foodName = document.getElementById("foodName");
-const calories = document.getElementById("calories");
-const protein = document.getElementById("protein");
-const carbs = document.getElementById("carbs");
-const fat = document.getElementById("fat");
-const explanation = document.getElementById("explanation");
+const loadingMessage = $("loadingMessage");
+const errorMessage = $("errorMessage");
+const screenReaderSummary = $("screenReaderSummary");
 
-const dailyCalories = document.getElementById("dailyCalories");
-const dailyProtein = document.getElementById("dailyProtein");
-const dailyCarbs = document.getElementById("dailyCarbs");
-const dailyFat = document.getElementById("dailyFat");
-const mealLog = document.getElementById("mealLog");
+const foodName = $("foodName");
+const calories = $("calories");
+const protein = $("protein");
+const carbs = $("carbs");
+const fat = $("fat");
+const explanation = $("explanation");
 
-const topEaten = document.getElementById("topEaten");
-const topLeft = document.getElementById("topLeft");
-const topBurned = document.getElementById("topBurned");
+const mealLog = $("mealLog");
 
-const breakfastSummary = document.getElementById("breakfastSummary");
-const lunchSummary = document.getElementById("lunchSummary");
-const dinnerSummary = document.getElementById("dinnerSummary");
-const snackSummary = document.getElementById("snackSummary");
+const topEaten = $("topEaten");
+const topLeft = $("topLeft");
+const topBurned = $("topBurned");
 
-const sexInput = document.getElementById("sexInput");
-const ageInput = document.getElementById("ageInput");
+const breakfastSummary = $("breakfastSummary");
+const lunchSummary = $("lunchSummary");
+const dinnerSummary = $("dinnerSummary");
+const snackSummary = $("snackSummary");
 
-const heightUnitInput = document.getElementById("heightUnitInput");
-const heightCmInput = document.getElementById("heightCmInput");
-const heightCmGroup = document.getElementById("heightCmGroup");
-const heightFtInGroup = document.getElementById("heightFtInGroup");
-const heightFeetInput = document.getElementById("heightFeetInput");
-const heightInchesInput = document.getElementById("heightInchesInput");
+const sexInput = $("sexInput");
+const ageInput = $("ageInput");
+const heightUnitInput = $("heightUnitInput");
+const heightCmInput = $("heightCmInput");
+const heightCmGroup = $("heightCmGroup");
+const heightFtInGroup = $("heightFtInGroup");
+const heightFeetInput = $("heightFeetInput");
+const heightInchesInput = $("heightInchesInput");
+const weightUnitInput = $("weightUnitInput");
+const weightInput = $("weightInput");
+const activityInput = $("activityInput");
+const goalInput = $("goalInput");
+const calculateRequirementButton = $("calculateRequirementButton");
 
-const weightUnitInput = document.getElementById("weightUnitInput");
-const weightInput = document.getElementById("weightInput");
-
-const activityInput = document.getElementById("activityInput");
-const goalInput = document.getElementById("goalInput");
-const calculateRequirementButton = document.getElementById("calculateRequirementButton");
-
-const bmrResult = document.getElementById("bmrResult");
-const tdeeResult = document.getElementById("tdeeResult");
-const targetResult = document.getElementById("targetResult");
-const remainingResult = document.getElementById("remainingResult");
-const requirementExplanation = document.getElementById("requirementExplanation");
+const bmrResult = $("bmrResult");
+const tdeeResult = $("tdeeResult");
+const targetResult = $("targetResult");
+const remainingResult = $("remainingResult");
+const requirementExplanation = $("requirementExplanation");
 
 let latestAnalysis = null;
 let latestCalorieTarget = null;
 
-analyzeButton.addEventListener("click", analyzeMeal);
-addToDayButton.addEventListener("click", addLatestMealToDay);
-clearDayButton.addEventListener("click", clearDailyTracker);
+if (analyzeButton) {
+  analyzeButton.addEventListener("click", analyzeMeal);
+}
 
-calculateRequirementButton.addEventListener("click", function () {
-  calculateCalorieRequirement(true);
-});
+if (addToDayButton) {
+  addToDayButton.addEventListener("click", addLatestMealToDay);
+}
 
-heightUnitInput.addEventListener("change", handleHeightUnitChange);
-weightUnitInput.addEventListener("change", handleWeightUnitChange);
+if (clearDayButton) {
+  clearDayButton.addEventListener("click", clearDailyTracker);
+}
 
-descriptionInput.addEventListener("keydown", function (event) {
-  if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-    analyzeMeal();
-  }
-});
+if (calculateRequirementButton) {
+  calculateRequirementButton.addEventListener("click", function () {
+    calculateCalorieRequirement(true);
+  });
+}
 
-loadDailyTracker();
+if (heightUnitInput) {
+  heightUnitInput.addEventListener("change", handleHeightUnitChange);
+}
+
+if (weightUnitInput) {
+  weightUnitInput.addEventListener("change", handleWeightUnitChange);
+}
+
+if (descriptionInput) {
+  descriptionInput.addEventListener("keydown", function (event) {
+    if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+      analyzeMeal();
+    }
+  });
+}
+
 loadRequirementInputs();
 handleHeightUnitChange(false);
 handleWeightUnitChange(false);
 calculateCalorieRequirement(false);
+renderDailyTracker(getStoredMeals());
 updateTopDashboard();
 
 async function analyzeMeal() {
   hideError();
   hideLoading();
 
-  const imageFile = imageInput.files[0];
-  const description = descriptionInput.value.trim();
-  const portion = portionInput.value || "100";
+  const imageFile = imageInput?.files?.[0];
+  const description = descriptionInput?.value?.trim() || "";
+  const portion = portionInput?.value || "100";
 
   if (!imageFile && !description) {
     showError("Please upload a food image or type a food description.");
-    descriptionInput.focus();
+    descriptionInput?.focus();
     return;
   }
 
   if (Number(portion) <= 0) {
     showError("Please enter a portion size greater than 0 grams.");
-    portionInput.focus();
+    portionInput?.focus();
     return;
   }
 
@@ -135,7 +147,7 @@ async function analyzeMeal() {
 
     try {
       data = JSON.parse(responseText);
-    } catch (jsonError) {
+    } catch {
       throw new Error("Backend did not return valid JSON.");
     }
 
@@ -144,16 +156,14 @@ async function analyzeMeal() {
     }
 
     latestAnalysis = {
-      mealType: mealTypeInput.value,
+      id: createId(),
+      mealType: mealTypeInput?.value || "Snack",
       food: safeText(data.food, "Unknown food"),
       calories: safeNumber(data.calories),
       protein: safeNumber(data.protein),
       carbs: safeNumber(data.carbs),
       fat: safeNumber(data.fat),
-      explanation: safeText(
-        data.explanation,
-        "Nutrition estimated from available information."
-      ),
+      explanation: safeText(data.explanation, "Nutrition estimated from available information."),
       timestamp: new Date().toISOString(),
       date: getTodayDateKey()
     };
@@ -171,35 +181,21 @@ async function analyzeMeal() {
   }
 }
 
-function updateResults(data) {
-  foodName.innerHTML = "<strong>Food:</strong> " + escapeHtml(data.food);
-  calories.innerHTML = "<strong>Calories:</strong> " + data.calories + " kcal";
-  protein.innerHTML = "<strong>Protein:</strong> " + data.protein + " g";
-  carbs.innerHTML = "<strong>Carbs:</strong> " + data.carbs + " g";
-  fat.innerHTML = "<strong>Fat:</strong> " + data.fat + " g";
-  explanation.innerHTML =
-    "<strong>Explanation:</strong> " + escapeHtml(data.explanation);
-
-  screenReaderSummary.textContent =
-    "Analysis complete. Food: " +
-    data.food +
-    ". Calories: " +
-    data.calories +
-    " kilocalories.";
-}
-
 function addLatestMealToDay() {
+  hideError();
+
   if (!latestAnalysis) {
-    showError("Please analyze a meal first.");
+    showError("Please analyze a meal first, then click Add to daily tracker.");
     return;
   }
 
   const meals = getStoredMeals();
 
   meals.push({
-    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
     ...latestAnalysis,
-    date: getTodayDateKey()
+    id: createId(),
+    date: getTodayDateKey(),
+    timestamp: new Date().toISOString()
   });
 
   localStorage.setItem("nutrilensDailyMeals", JSON.stringify(meals));
@@ -208,8 +204,22 @@ function addLatestMealToDay() {
   updateRemainingCalories();
   updateTopDashboard();
 
-  screenReaderSummary.textContent =
-    latestAnalysis.mealType + " added to daily tracker.";
+  addToDayButton.disabled = true;
+  descriptionInput.value = "";
+  if (imageInput) imageInput.value = "";
+
+  announce(`${latestAnalysis.food} added to ${latestAnalysis.mealType}.`);
+}
+
+function updateResults(data) {
+  if (foodName) foodName.innerHTML = "<strong>Food:</strong> " + escapeHtml(data.food);
+  if (calories) calories.innerHTML = "<strong>Calories:</strong> " + data.calories + " kcal";
+  if (protein) protein.innerHTML = "<strong>Protein:</strong> " + data.protein + " g";
+  if (carbs) carbs.innerHTML = "<strong>Carbs:</strong> " + data.carbs + " g";
+  if (fat) fat.innerHTML = "<strong>Fat:</strong> " + data.fat + " g";
+  if (explanation) explanation.innerHTML = "<strong>Explanation:</strong> " + escapeHtml(data.explanation);
+
+  announce("Analysis complete.");
 }
 
 function clearDailyTracker() {
@@ -224,12 +234,7 @@ function clearDailyTracker() {
   updateRemainingCalories();
   updateTopDashboard();
 
-  screenReaderSummary.textContent = "Today’s tracker cleared.";
-}
-
-function loadDailyTracker() {
-  const meals = getStoredMeals();
-  renderDailyTracker(meals);
+  announce("Today’s tracker cleared.");
 }
 
 function getStoredMeals() {
@@ -241,7 +246,7 @@ function getStoredMeals() {
       ...meal,
       date: meal.date || getDateKeyFromTimestamp(meal.timestamp) || getTodayDateKey()
     }));
-  } catch (error) {
+  } catch {
     return [];
   }
 }
@@ -252,9 +257,7 @@ function getTodayMeals() {
 }
 
 function getDailyTotals() {
-  const meals = getTodayMeals();
-
-  return meals.reduce(
+  return getTodayMeals().reduce(
     (sum, meal) => {
       sum.calories += safeNumber(meal.calories);
       sum.protein += safeNumber(meal.protein);
@@ -275,28 +278,9 @@ function renderDailyTracker(meals) {
   const today = getTodayDateKey();
   const todayMeals = meals.filter((meal) => meal.date === today);
 
-  const totals = todayMeals.reduce(
-    (sum, meal) => {
-      sum.calories += safeNumber(meal.calories);
-      sum.protein += safeNumber(meal.protein);
-      sum.carbs += safeNumber(meal.carbs);
-      sum.fat += safeNumber(meal.fat);
-      return sum;
-    },
-    {
-      calories: 0,
-      protein: 0,
-      carbs: 0,
-      fat: 0
-    }
-  );
-
-  dailyCalories.textContent = safeNumber(totals.calories) + " kcal";
-  dailyProtein.textContent = safeNumber(totals.protein) + " g";
-  dailyCarbs.textContent = safeNumber(totals.carbs) + " g";
-  dailyFat.textContent = safeNumber(totals.fat) + " g";
-
   updateMealSummaries(todayMeals);
+
+  if (!mealLog) return;
 
   if (todayMeals.length === 0) {
     mealLog.innerHTML = buildDeficitSummaryHtml() + "<p>No meals added today.</p>";
@@ -320,9 +304,7 @@ function renderDailyTracker(meals) {
   Object.keys(groupedMeals).forEach((mealType) => {
     const group = groupedMeals[mealType];
 
-    if (group.length === 0) {
-      return;
-    }
+    if (group.length === 0) return;
 
     const section = document.createElement("section");
     section.className = "meal-section";
@@ -338,8 +320,7 @@ function renderDailyTracker(meals) {
       item.innerHTML =
         "<strong>" +
         escapeHtml(meal.food) +
-        "</strong>" +
-        "<br />" +
+        "</strong><br />" +
         safeNumber(meal.calories) +
         " kcal | Protein " +
         safeNumber(meal.protein) +
@@ -376,17 +357,10 @@ function updateMealSummaries(todayMeals) {
     totals[type] += safeNumber(meal.calories);
   });
 
-  breakfastSummary.textContent =
-    cleanWholeNumber(totals.Breakfast) + " / " + mealTargets.Breakfast + " Cal";
-
-  lunchSummary.textContent =
-    cleanWholeNumber(totals.Lunch) + " / " + mealTargets.Lunch + " Cal";
-
-  dinnerSummary.textContent =
-    cleanWholeNumber(totals.Dinner) + " / " + mealTargets.Dinner + " Cal";
-
-  snackSummary.textContent =
-    cleanWholeNumber(totals.Snack) + " / " + mealTargets.Snack + " Cal";
+  if (breakfastSummary) breakfastSummary.textContent = `${cleanWholeNumber(totals.Breakfast)} / ${mealTargets.Breakfast} Cal`;
+  if (lunchSummary) lunchSummary.textContent = `${cleanWholeNumber(totals.Lunch)} / ${mealTargets.Lunch} Cal`;
+  if (dinnerSummary) dinnerSummary.textContent = `${cleanWholeNumber(totals.Dinner)} / ${mealTargets.Dinner} Cal`;
+  if (snackSummary) snackSummary.textContent = `${cleanWholeNumber(totals.Snack)} / ${mealTargets.Snack} Cal`;
 }
 
 function updateTopDashboard() {
@@ -394,14 +368,13 @@ function updateTopDashboard() {
   const eaten = cleanWholeNumber(totals.calories);
   const burned = 0;
 
-  let target = 0;
-
-  if (latestCalorieTarget && latestCalorieTarget.target) {
-    target = latestCalorieTarget.target;
-  } else {
-    const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
-    target = Number.isFinite(savedTarget) ? savedTarget : 0;
-  }
+  const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
+  const target =
+    latestCalorieTarget && latestCalorieTarget.target
+      ? latestCalorieTarget.target
+      : Number.isFinite(savedTarget)
+        ? savedTarget
+        : 0;
 
   const left = Math.max(cleanWholeNumber(target - eaten), 0);
 
@@ -412,10 +385,14 @@ function updateTopDashboard() {
 
 function buildDeficitSummaryHtml() {
   const totals = getDailyTotals();
-  const target = latestCalorieTarget ? latestCalorieTarget.target : Number(localStorage.getItem("nutrilensLatestTarget"));
-  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : Number(localStorage.getItem("nutrilensLatestTdee"));
 
-  if (!target || !tdee) {
+  const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
+  const savedTdee = Number(localStorage.getItem("nutrilensLatestTdee"));
+
+  const target = latestCalorieTarget?.target || savedTarget;
+  const tdee = latestCalorieTarget?.tdee || savedTdee;
+
+  if (!target || !tdee || !Number.isFinite(target) || !Number.isFinite(tdee)) {
     return `
       <div class="meal-item">
         <strong>Calorie balance:</strong><br />
@@ -458,12 +435,10 @@ function buildDeficitSummaryHtml() {
 
 function calculateLastSevenDayDeficit() {
   const savedTdee = Number(localStorage.getItem("nutrilensLatestTdee"));
-  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : savedTdee;
+  const tdee = latestCalorieTarget?.tdee || savedTdee;
 
   if (!tdee || !Number.isFinite(tdee)) {
-    return {
-      deficit: 0
-    };
+    return { deficit: 0 };
   }
 
   const meals = getStoredMeals();
@@ -479,31 +454,28 @@ function calculateLastSevenDayDeficit() {
     totalDeficit += tdee - dayCalories;
   });
 
-  return {
-    deficit: totalDeficit
-  };
+  return { deficit: totalDeficit };
 }
 
-function handleHeightUnitChange(announce = true) {
+function handleHeightUnitChange(announceChange = true) {
+  if (!heightUnitInput || !heightCmGroup || !heightFtInGroup) return;
+
   const useFtIn = heightUnitInput.value === "ftin";
 
   if (useFtIn) {
-    const cm = safeNumber(heightCmInput.value);
+    const cm = safeNumber(heightCmInput?.value);
 
     if (cm > 0) {
       const totalInches = cm / 2.54;
-      const feet = Math.floor(totalInches / 12);
-      const inches = Math.round(totalInches - feet * 12);
-
-      heightFeetInput.value = feet;
-      heightInchesInput.value = inches;
+      heightFeetInput.value = Math.floor(totalInches / 12);
+      heightInchesInput.value = Math.round(totalInches % 12);
     }
 
     heightCmGroup.classList.add("hidden");
     heightFtInGroup.classList.remove("hidden");
   } else {
-    const feet = safeNumber(heightFeetInput.value);
-    const inches = safeNumber(heightInchesInput.value);
+    const feet = safeNumber(heightFeetInput?.value);
+    const inches = safeNumber(heightInchesInput?.value);
     const totalInches = feet * 12 + inches;
 
     if (totalInches > 0) {
@@ -516,15 +488,14 @@ function handleHeightUnitChange(announce = true) {
 
   saveRequirementInputs();
 
-  if (announce) {
-    screenReaderSummary.textContent =
-      useFtIn
-        ? "Height unit changed to feet and inches."
-        : "Height unit changed to centimeters.";
+  if (announceChange) {
+    announce(useFtIn ? "Height unit changed to feet and inches." : "Height unit changed to centimeters.");
   }
 }
 
-function handleWeightUnitChange(announce = true) {
+function handleWeightUnitChange(announceChange = true) {
+  if (!weightUnitInput || !weightInput) return;
+
   const currentWeight = safeNumber(weightInput.value);
 
   if (weightUnitInput.value === "lb") {
@@ -543,15 +514,14 @@ function handleWeightUnitChange(announce = true) {
 
   saveRequirementInputs();
 
-  if (announce) {
-    screenReaderSummary.textContent =
-      weightUnitInput.value === "lb"
-        ? "Weight unit changed to pounds."
-        : "Weight unit changed to kilograms.";
+  if (announceChange) {
+    announce(weightUnitInput.value === "lb" ? "Weight unit changed to pounds." : "Weight unit changed to kilograms.");
   }
 }
 
-function calculateCalorieRequirement(announce = true) {
+function calculateCalorieRequirement(announceChange = true) {
+  if (!sexInput || !ageInput || !activityInput || !goalInput) return;
+
   hideError();
 
   const sex = sexInput.value;
@@ -561,28 +531,23 @@ function calculateCalorieRequirement(announce = true) {
 
   let heightCm;
 
-  if (heightUnitInput.value === "ftin") {
-    const feet = safeNumber(heightFeetInput.value);
-    const inches = safeNumber(heightInchesInput.value);
+  if (heightUnitInput?.value === "ftin") {
+    const feet = safeNumber(heightFeetInput?.value);
+    const inches = safeNumber(heightInchesInput?.value);
     heightCm = (feet * 12 + inches) * 2.54;
   } else {
-    heightCm = safeNumber(heightCmInput.value);
+    heightCm = safeNumber(heightCmInput?.value);
   }
 
   let weightKg;
 
-  if (weightUnitInput.value === "lb") {
-    weightKg = safeNumber(weightInput.value) * 0.453592;
+  if (weightUnitInput?.value === "lb") {
+    weightKg = safeNumber(weightInput?.value) * 0.453592;
   } else {
-    weightKg = safeNumber(weightInput.value);
+    weightKg = safeNumber(weightInput?.value);
   }
 
-  if (
-    age <= 0 ||
-    heightCm <= 0 ||
-    weightKg <= 0 ||
-    !Number.isFinite(activityFactor)
-  ) {
+  if (age <= 0 || heightCm <= 0 || weightKg <= 0 || !Number.isFinite(activityFactor)) {
     showError("Please enter valid age, height, weight, and activity level.");
     return;
   }
@@ -625,43 +590,34 @@ function calculateCalorieRequirement(announce = true) {
 
   saveRequirementInputs();
 
-  bmrResult.innerHTML =
-    "<strong>BMR:</strong> " + latestCalorieTarget.bmr + " kcal/day";
-
-  tdeeResult.innerHTML =
-    "<strong>Estimated TDEE:</strong> " + latestCalorieTarget.tdee + " kcal/day";
-
-  targetResult.innerHTML =
-    "<strong>Suggested target:</strong> " +
-    latestCalorieTarget.target +
-    " kcal/day for " +
-    escapeHtml(goalText);
-
-  requirementExplanation.innerHTML =
-    "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. Height and weight are converted internally to cm and kg before calculation. TDEE is BMR multiplied by your selected activity factor.";
+  if (bmrResult) bmrResult.innerHTML = `<strong>BMR:</strong> ${latestCalorieTarget.bmr} kcal/day`;
+  if (tdeeResult) tdeeResult.innerHTML = `<strong>Estimated TDEE:</strong> ${latestCalorieTarget.tdee} kcal/day`;
+  if (targetResult) targetResult.innerHTML = `<strong>Suggested target:</strong> ${latestCalorieTarget.target} kcal/day for ${escapeHtml(goalText)}`;
+  if (requirementExplanation) {
+    requirementExplanation.innerHTML =
+      "<strong>Explanation:</strong> BMR is estimated using the Mifflin–St Jeor equation. Height and weight are converted internally to cm and kg before calculation.";
+  }
 
   updateRemainingCalories();
   renderDailyTracker(getStoredMeals());
   updateTopDashboard();
 
-  if (announce) {
-    screenReaderSummary.textContent =
-      "Calorie requirement calculated. Estimated target is " +
-      latestCalorieTarget.target +
-      " kilocalories per day.";
+  if (announceChange) {
+    announce(`Calorie requirement calculated. Estimated target is ${latestCalorieTarget.target} kilocalories per day.`);
   }
 }
 
 function updateRemainingCalories() {
+  if (!remainingResult) return;
+
   const savedTarget = Number(localStorage.getItem("nutrilensLatestTarget"));
   const savedTdee = Number(localStorage.getItem("nutrilensLatestTdee"));
 
-  const target = latestCalorieTarget ? latestCalorieTarget.target : savedTarget;
-  const tdee = latestCalorieTarget ? latestCalorieTarget.tdee : savedTdee;
+  const target = latestCalorieTarget?.target || savedTarget;
+  const tdee = latestCalorieTarget?.tdee || savedTdee;
 
-  if (!target || !tdee) {
-    remainingResult.innerHTML =
-      "<strong>Today remaining:</strong> Calculate requirement first.";
+  if (!target || !tdee || !Number.isFinite(target) || !Number.isFinite(tdee)) {
+    remainingResult.innerHTML = "<strong>Today remaining:</strong> Calculate requirement first.";
     return;
   }
 
@@ -671,30 +627,29 @@ function updateRemainingCalories() {
 
   const remainingText =
     remaining >= 0
-      ? remaining + " kcal remaining to target"
-      : Math.abs(remaining) + " kcal above target";
+      ? `${remaining} kcal remaining to target`
+      : `${Math.abs(remaining)} kcal above target`;
 
   const deficitText =
     deficit >= 0
-      ? deficit + " kcal deficit vs estimated TDEE"
-      : Math.abs(deficit) + " kcal surplus vs estimated TDEE";
+      ? `${deficit} kcal deficit vs estimated TDEE`
+      : `${Math.abs(deficit)} kcal surplus vs estimated TDEE`;
 
-  remainingResult.innerHTML =
-    "<strong>Today remaining:</strong> " + remainingText + " | " + deficitText;
+  remainingResult.innerHTML = `<strong>Today remaining:</strong> ${remainingText} | ${deficitText}`;
 }
 
 function saveRequirementInputs() {
   const data = {
-    sex: sexInput.value,
-    age: ageInput.value,
-    heightUnit: heightUnitInput.value,
-    heightCm: heightCmInput.value,
-    heightFeet: heightFeetInput.value,
-    heightInches: heightInchesInput.value,
-    weightUnit: weightUnitInput.value,
-    weight: weightInput.value,
-    activity: activityInput.value,
-    goal: goalInput.value
+    sex: sexInput?.value,
+    age: ageInput?.value,
+    heightUnit: heightUnitInput?.value,
+    heightCm: heightCmInput?.value,
+    heightFeet: heightFeetInput?.value,
+    heightInches: heightInchesInput?.value,
+    weightUnit: weightUnitInput?.value,
+    weight: weightInput?.value,
+    activity: activityInput?.value,
+    goal: goalInput?.value
   };
 
   localStorage.setItem("nutrilensRequirementInputs", JSON.stringify(data));
@@ -703,41 +658,34 @@ function saveRequirementInputs() {
 function loadRequirementInputs() {
   try {
     const raw = localStorage.getItem("nutrilensRequirementInputs");
-
-    if (!raw) {
-      return;
-    }
+    if (!raw) return;
 
     const data = JSON.parse(raw);
 
-    if (data.sex) sexInput.value = data.sex;
-    if (data.age) ageInput.value = data.age;
-    if (data.heightUnit) heightUnitInput.value = data.heightUnit;
-    if (data.heightCm) heightCmInput.value = data.heightCm;
-    if (data.heightFeet) heightFeetInput.value = data.heightFeet;
-    if (data.heightInches) heightInchesInput.value = data.heightInches;
-    if (data.weightUnit) weightUnitInput.value = data.weightUnit;
-    if (data.weight) weightInput.value = data.weight;
-    if (data.activity) activityInput.value = data.activity;
-    if (data.goal) goalInput.value = data.goal;
-  } catch (error) {
+    if (data.sex && sexInput) sexInput.value = data.sex;
+    if (data.age && ageInput) ageInput.value = data.age;
+    if (data.heightUnit && heightUnitInput) heightUnitInput.value = data.heightUnit;
+    if (data.heightCm && heightCmInput) heightCmInput.value = data.heightCm;
+    if (data.heightFeet && heightFeetInput) heightFeetInput.value = data.heightFeet;
+    if (data.heightInches && heightInchesInput) heightInchesInput.value = data.heightInches;
+    if (data.weightUnit && weightUnitInput) weightUnitInput.value = data.weightUnit;
+    if (data.weight && weightInput) weightInput.value = data.weight;
+    if (data.activity && activityInput) activityInput.value = data.activity;
+    if (data.goal && goalInput) goalInput.value = data.goal;
+  } catch {
     return;
   }
 }
 
 function getTodayDateKey() {
-  const now = new Date();
-  return now.toISOString().slice(0, 10);
+  return new Date().toISOString().slice(0, 10);
 }
 
 function getDateKeyFromTimestamp(timestamp) {
   if (!timestamp) return null;
 
   const date = new Date(timestamp);
-
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
+  if (Number.isNaN(date.getTime())) return null;
 
   return date.toISOString().slice(0, 10);
 }
@@ -756,25 +704,49 @@ function getLastSevenDateKeys() {
 }
 
 function showError(message) {
-  errorMessage.textContent = message;
-  errorMessage.classList.remove("hidden");
-  screenReaderSummary.textContent = "Error: " + message;
+  if (errorMessage) {
+    errorMessage.textContent = message;
+    errorMessage.classList.remove("hidden");
+  }
+
+  announce("Error: " + message);
 }
 
 function hideError() {
-  errorMessage.textContent = "";
-  errorMessage.classList.add("hidden");
+  if (errorMessage) {
+    errorMessage.textContent = "";
+    errorMessage.classList.add("hidden");
+  }
 }
 
 function showLoading(message) {
-  loadingMessage.textContent = message;
-  loadingMessage.classList.remove("hidden");
-  screenReaderSummary.textContent = message;
+  if (loadingMessage) {
+    loadingMessage.textContent = message;
+    loadingMessage.classList.remove("hidden");
+  }
+
+  announce(message);
 }
 
 function hideLoading() {
-  loadingMessage.textContent = "";
-  loadingMessage.classList.add("hidden");
+  if (loadingMessage) {
+    loadingMessage.textContent = "";
+    loadingMessage.classList.add("hidden");
+  }
+}
+
+function announce(message) {
+  if (screenReaderSummary) {
+    screenReaderSummary.textContent = message;
+  }
+}
+
+function createId() {
+  if (crypto && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+
+  return String(Date.now()) + String(Math.random());
 }
 
 function safeText(value, fallback) {
@@ -787,31 +759,19 @@ function safeText(value, fallback) {
 
 function safeNumber(value) {
   const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return 0;
-  }
-
+  if (!Number.isFinite(number)) return 0;
   return Math.round(number * 10) / 10;
 }
 
 function cleanWholeNumber(value) {
   const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return 0;
-  }
-
+  if (!Number.isFinite(number)) return 0;
   return Math.round(number);
 }
 
 function cleanNumber(value) {
   const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return 0;
-  }
-
+  if (!Number.isFinite(number)) return 0;
   return Math.round(number * 10) / 10;
 }
 
