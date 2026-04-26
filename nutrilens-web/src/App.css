@@ -1,0 +1,142 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #f4f6f8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1f2937;
+}
+
+.app {
+  width: 100%;
+  max-width: 430px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.hero {
+  background: linear-gradient(180deg, #ffc97d, #f8bd72);
+  color: white;
+  padding: 26px 20px;
+  border-radius: 0 0 30px 30px;
+  text-align: center;
+  margin: -20px -20px 20px;
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.hero p {
+  margin-bottom: 0;
+  opacity: 0.9;
+}
+
+.card {
+  background: white;
+  padding: 20px;
+  border-radius: 22px;
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.08);
+  margin-bottom: 20px;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  font-weight: 700;
+  margin: 14px 0 8px;
+}
+
+textarea,
+input {
+  width: 100%;
+  padding: 13px;
+  border-radius: 14px;
+  border: 1px solid #d8dee9;
+  font-size: 16px;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+button {
+  width: 100%;
+  border: none;
+  background: #18a98b;
+  color: white;
+  padding: 14px;
+  border-radius: 16px;
+  font-weight: 800;
+  font-size: 16px;
+  margin-top: 14px;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.message {
+  background: #fff4cf;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.result,
+.meal {
+  background: #f6f8fc;
+  padding: 14px;
+  border-radius: 16px;
+  margin-top: 14px;
+}
+
+.source {
+  opacity: 0.6;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.summary div {
+  background: #f6f8fc;
+  padding: 16px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.summary strong {
+  display: block;
+  font-size: 1.8rem;
+}
+
+.summary span {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.meal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.danger {
+  background: #b42318;
+}
+
+.full {
+  margin-top: 18px;
+}
